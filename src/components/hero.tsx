@@ -23,7 +23,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-light tracking-tight text-white mb-6"
+          className="text-5xl md:text-7xl lg:text-8xl font-light tracking-tight md:tracking-normal lg:tracking-wide text-white mb-6"
         >
           CREMA<span className="text-amber-200/40"> / </span>NOIR
         </motion.h1>
@@ -32,7 +32,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed"
+          className="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed md:leading-loose"
         >
           A ritual of purity. Single-origin beans, meticulously roasted to unveil 
           their deepest character. Experience coffee in its most essential form.
