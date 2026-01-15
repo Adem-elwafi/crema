@@ -1,10 +1,14 @@
 import './index.css'
-import Hero from  './components/hero'
+import Hero from './components/hero'
+import Philosophy from './components/Philosophy'
+import Divider from './components/Divider'
 
 function App() {
   return (
-    <div className="h-screen w-full bg-[#0f0d0b] flex items-center justify-center">
-      <Hero/>
+    <div className="w-full bg-[#0f0d0b]">
+      <Hero />
+      <Divider />
+      <Philosophy />
     </div>
   )
 }
