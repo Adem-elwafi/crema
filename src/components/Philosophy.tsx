@@ -4,19 +4,49 @@ import { useRef } from 'react';
 
 const Philosophy = () => {
   const philosophyRef = useRef(null);
-  const isInView = useInView(philosophyRef, { once: true, amount: 0.3 });
+  const isInView = useInView(philosophyRef, { once: true, amount: 0.2 });
+
+  // Animation variants for staggered children
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.1,
+      }
+    }
+  };
+
+  const childVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20 
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.8,
+        ease: [0.22, 1, 0.36, 1] // Custom easing for smoother motion
+      }
+    }
+  };
 
   return (
     <section 
       ref={philosophyRef}
       className="pt-16 pb-24 md:pt-20 md:pb-32 px-6 md:px-12 flex items-center justify-center"
     >
-      <div className="max-w-3xl mx-auto text-center">
+      <motion.div 
+        className="max-w-3xl mx-auto text-center"
+        initial="hidden"
+        animate={isInView ? "visible" : "hidden"}
+        variants={containerVariants}
+      >
         {/* Tagline Bridge */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0 }}
+          variants={childVariants}
           className="mb-10 md:mb-12"
         >
           <p className="text-sm md:text-base text-neutral-400 italic tracking-wide">
@@ -25,17 +55,13 @@ const Philosophy = () => {
         </motion.div>
 
         <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+          variants={childVariants}
           className="text-3xl md:text-4xl lg:text-5xl font-light tracking-wide text-white mb-8"
         >
           Our Philosophy
         </motion.h2>
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+          variants={childVariants}
           className="text-lg md:text-xl text-gray-300 leading-relaxed md:leading-loose"
         >
           In a world of constant noise, we believe in the calm ritual of preparation, 
@@ -43,7 +69,7 @@ const Philosophy = () => {
           essential. Each roast is a return to purity—a deliberate, unhurried process 
           that honors the bean's deepest character.
         </motion.p>
-      </div>
+      </motion.div>
     </section>
   );
 };
