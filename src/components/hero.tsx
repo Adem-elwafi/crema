@@ -1,24 +1,28 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import Coffee3D from "./Coffee3D";
 
 const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 md:px-12 overflow-hidden">
-      {/* Subtle radial glow background */}
+      {/* 3D Coffee Element in Background */}
+      <Coffee3D />
+      
+      {/* Subtle radial glow background - adjusted opacity to work with 3D */}
       <div 
         className="absolute inset-0 pointer-events-none"
         aria-hidden="true"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
         <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] max-w-4xl max-h-4xl opacity-10"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] max-w-4xl max-h-4xl opacity-[0.08]"
           style={{
             background: 'radial-gradient(circle at center, #f59e0b 0%, transparent 70%)',
           }}
         />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto text-center">
+      <div className="relative z-20 max-w-4xl mx-auto text-center">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -70,7 +74,7 @@ const Hero = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.5, delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
       >
         <div className="w-px h-16 bg-gradient-to-b from-amber-200/20 to-transparent" />
       </motion.div>
