@@ -1,7 +1,7 @@
 const Divider = () => {
   return (
-    <div className="py-12 md:py-16">
-      <div className="h-px w-full bg-neutral-700 opacity-30"></div>
+    <div className="py-16 md:py-24">
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-neutral-700/10 to-transparent"></div>
     </div>
   );
 };
