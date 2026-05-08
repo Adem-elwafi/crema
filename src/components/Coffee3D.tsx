@@ -1,132 +1,167 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import ScrollTrigger from 'gsap/ScrollTrigger'
 
 // Declare global Three.js types to avoid TypeScript errors
 declare global {
   interface Window {
-    THREE: any;
+    THREE?: typeof import('three')
   }
 }
 
+gsap.registerPlugin(ScrollTrigger)
+
 const Coffee3D = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
+  const containerRef = useRef<HTMLDivElement>(null)
+  const animationRef = useRef<number | null>(null)
 
   useEffect(() => {
-    let mounted = true;
+    let mounted = true
+    let cleanupScene: (() => void) | undefined
 
     const initThreeJS = async () => {
-      if (!containerRef.current || !mounted) return;
+      if (!containerRef.current || !mounted) return
 
       try {
-        // Dynamically import Three.js to avoid SSR issues
-        const THREE = await import('three');
-        
-        // Scene setup
-        const scene = new THREE.Scene();
+        const THREE = await import('three')
+
+        const scene = new THREE.Scene()
         const camera = new THREE.PerspectiveCamera(
           50,
           containerRef.current.clientWidth / containerRef.current.clientHeight,
           0.1,
           1000
-        );
-        
+        )
+
         const renderer = new THREE.WebGLRenderer({
           alpha: true,
           antialias: true,
-        });
-        renderer.setSize(
-          containerRef.current.clientWidth,
-          containerRef.current.clientHeight
-        );
-        renderer.setClearColor(0x000000, 0); // Transparent background
-        containerRef.current.appendChild(renderer.domElement);
+        })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
+        renderer.setClearColor(0x000000, 0)
+        containerRef.current.appendChild(renderer.domElement)
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-        
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65)
+        scene.add(ambientLight)
 
-        // Create coffee bean geometry
-        const geometry = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI);
-        
-        // Create material
+        const directionalLight = new THREE.DirectionalLight(0xffd7a3, 1.1)
+        directionalLight.position.set(5, 5, 5)
+        scene.add(directionalLight)
+
+        const fillLight = new THREE.PointLight(0x8b4513, 0.45, 12)
+        fillLight.position.set(-2, -1, 4)
+        scene.add(fillLight)
+
+        const geometry = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI)
         const material = new THREE.MeshStandardMaterial({
-          color: 0x8B4513,
-          emissive: 0x3C2A21,
-          emissiveIntensity: 0.1,
-          roughness: 0.5,
-          metalness: 0.2,
-        });
+          color: 0x8b4513,
+          emissive: 0x3c2a21,
+          emissiveIntensity: 0.12,
+          roughness: 0.48,
+          metalness: 0.18,
+        })
 
-        // Create mesh
-        const coffeeBean = new THREE.Mesh(geometry, material);
-        scene.add(coffeeBean);
+        const coffeeBean = new THREE.Mesh(geometry, material)
+        coffeeBean.scale.set(1.6, 1.1, 0.95)
+        coffeeBean.rotation.z = 0.35
+        scene.add(coffeeBean)
 
-        // Position camera
-        camera.position.z = 5;
+        camera.position.z = 4.35
 
-        // Animation
+        const triggerElement = containerRef.current.closest('section') ?? containerRef.current
+        const scrollTimeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: triggerElement,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 1,
+          },
+        })
+
+        scrollTimeline.to(
+          coffeeBean.rotation,
+          {
+            y: Math.PI * 7,
+            x: 0.55,
+            z: 0.15,
+            ease: 'none',
+          },
+          0
+        )
+        scrollTimeline.to(
+          coffeeBean.position,
+          {
+            x: 1.2,
+            y: -0.25,
+            ease: 'none',
+          },
+          0
+        )
+        scrollTimeline.to(
+          coffeeBean.scale,
+          {
+            x: 1.8,
+            y: 1.2,
+            z: 1.05,
+            ease: 'none',
+          },
+          0
+        )
+
         const animate = () => {
-          if (!mounted) return;
-          
-          coffeeBean.rotation.y += 0.005;
-          coffeeBean.rotation.x = Math.sin(Date.now() * 0.001) * 0.1;
-          
-          renderer.render(scene, camera);
-          animationRef.current = requestAnimationFrame(animate);
-        };
+          if (!mounted) return
 
-        animate();
+          coffeeBean.rotation.y += 0.004
+          coffeeBean.rotation.x = Math.sin(Date.now() * 0.001) * 0.08
 
-        // Handle resize
+          renderer.render(scene, camera)
+          animationRef.current = requestAnimationFrame(animate)
+        }
+
+        animate()
+
         const handleResize = () => {
-          if (!containerRef.current || !mounted) return;
-          
-          camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-          camera.updateProjectionMatrix();
-          renderer.setSize(
-            containerRef.current.clientWidth,
-            containerRef.current.clientHeight
-          );
-        };
+          if (!containerRef.current || !mounted) return
 
-        window.addEventListener('resize', handleResize);
+          camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight
+          camera.updateProjectionMatrix()
+          renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
+        }
 
-        // Cleanup
-        return () => {
-          mounted = false;
-          window.removeEventListener('resize', handleResize);
-          if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
+        window.addEventListener('resize', handleResize)
+
+        cleanupScene = () => {
+          window.removeEventListener('resize', handleResize)
+          scrollTimeline.scrollTrigger?.kill()
+          scrollTimeline.kill()
+          if (animationRef.current !== null) {
+            cancelAnimationFrame(animationRef.current)
           }
-          if (containerRef.current && renderer.domElement) {
-            containerRef.current.removeChild(renderer.domElement);
+          geometry.dispose()
+          material.dispose()
+          renderer.dispose()
+          if (renderer.domElement.parentElement) {
+            renderer.domElement.parentElement.removeChild(renderer.domElement)
           }
-          renderer.dispose();
-        };
-
+        }
       } catch (error) {
-        console.error('Failed to initialize Three.js:', error);
+        console.error('Failed to initialize Three.js:', error)
       }
-    };
+    }
 
-    initThreeJS();
+    void initThreeJS()
 
     return () => {
-      mounted = false;
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, []);
+      mounted = false
+      cleanupScene?.()
+    }
+  }, [])
 
   return (
     <div 
       ref={containerRef}
-      className="absolute inset-0 pointer-events-none opacity-20"
+      className="absolute inset-0 pointer-events-none opacity-100"
       aria-hidden="true"
     />
   );
