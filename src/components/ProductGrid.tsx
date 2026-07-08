@@ -37,7 +37,7 @@ const ProductGrid = () => {
   return (
     <section
       id="collections"
-      className="scroll-mt-24 border-y border-white/5 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.08),transparent_50%),linear-gradient(180deg,#12100d_0%,#0f0d0b_100%)] px-6 py-20 md:px-12 md:py-28"
+      className="scroll-mt-24 border-y border-white/5 bg-transparent px-6 py-20 md:px-12 md:py-28"
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 max-w-2xl">
@@ -53,7 +53,7 @@ const ProductGrid = () => {
           {products.map((product) => (
             <article
               key={product.name}
-              className="group relative overflow-hidden rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-white/[0.05]"
+              className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-neutral-950/75 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-neutral-900/80"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 via-transparent to-amber-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 

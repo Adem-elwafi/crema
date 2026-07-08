@@ -1,14 +1,10 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import Coffee3D from "./Coffee3D";
 
 const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 md:px-12 overflow-hidden">
-      {/* 3D Coffee Element in Background */}
-      <Coffee3D />
-      
-      {/* Subtle radial glow background - adjusted opacity to work with 3D */}
+      {/* Subtle radial glow background */}
       <div 
         className="absolute inset-0 pointer-events-none"
         aria-hidden="true"
