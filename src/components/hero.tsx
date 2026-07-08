@@ -1,9 +1,34 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Hero = () => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!contentRef.current || !sectionRef.current) return;
+
+    gsap.to(contentRef.current, {
+      opacity: 0,
+      scale: 1.12,
+      ease: "power1.inOut",
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        start: "top top",
+        end: "bottom top",
+        scrub: 1.5,
+      },
+    });
+  }, { scope: sectionRef });
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-6 md:px-12 overflow-hidden">
+    <section ref={sectionRef} className="relative min-h-screen flex items-center justify-center px-6 md:px-12 overflow-hidden">
       {/* Subtle radial glow background */}
       <div 
         className="absolute inset-0 pointer-events-none"
@@ -18,7 +43,7 @@ const Hero = () => {
         />
       </div>
 
-      <div className="relative z-20 max-w-4xl mx-auto text-center">
+      <div ref={contentRef} className="relative z-20 max-w-4xl mx-auto text-center">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

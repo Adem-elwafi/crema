@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import gsap from 'gsap'
-import ScrollTrigger from 'gsap/ScrollTrigger'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useGSAP } from '@gsap/react'
 import { Bean, Flame, Clock3, Droplets } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -34,43 +35,48 @@ const steps = [
 
 const BrewingRitual = () => {
   const sectionRef = useRef<HTMLElement>(null)
-  const stepRefs = useRef<Array<HTMLElement | null>>([])
+  const contentRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!sectionRef.current) {
-      return
-    }
+  useGSAP(() => {
+    if (!contentRef.current || !sectionRef.current) return;
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        stepRefs.current,
-        { opacity: 0, y: 36 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.9,
-          ease: 'power3.out',
-          stagger: 0.16,
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top 72%',
-            end: 'bottom 45%',
-            toggleActions: 'play none none reverse',
-          },
+    // Viewport enter: Fade in and slide up
+    gsap.fromTo(contentRef.current,
+      { opacity: 0, y: 60 },
+      {
+        opacity: 1,
+        y: 0,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 85%',
+          end: 'top 40%',
+          scrub: 1.5,
         }
-      )
-    }, sectionRef)
+      }
+    );
 
-    return () => ctx.revert()
-  }, [])
+    // Viewport exit: Fade out and slide up
+    gsap.to(contentRef.current, {
+      opacity: 0,
+      y: -60,
+      ease: 'power2.in',
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        start: 'bottom 80%',
+        end: 'bottom 35%',
+        scrub: 1.5,
+      }
+    });
+  }, { scope: sectionRef });
 
   return (
     <section
       ref={sectionRef}
       id="ritual"
-      className="scroll-mt-24 bg-[#0f0d0b] px-6 py-20 md:px-12 md:py-28"
+      className="scroll-mt-24 bg-transparent px-6 py-32 md:px-12 md:py-48 min-h-screen flex items-center justify-center"
     >
-      <div className="mx-auto max-w-6xl">
+      <div ref={contentRef} className="mx-auto max-w-6xl w-full">
         <div className="mb-12 max-w-2xl">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-600">
             Brewing Ritual
@@ -87,10 +93,7 @@ const BrewingRitual = () => {
             return (
               <article
                 key={step.title}
-                ref={(element) => {
-                  stepRefs.current[index] = element
-                }}
-                className="group rounded-[1.75rem] border border-white/8 bg-white/[0.03] p-6 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-white/[0.05]"
+                className="group rounded-[1.75rem] border border-white/10 bg-neutral-950/65 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-neutral-900/85"
               >
                 <div className="mb-12 flex items-center justify-between">
                   <span className="text-xs uppercase tracking-[0.3em] text-neutral-500">

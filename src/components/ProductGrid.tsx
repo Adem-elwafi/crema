@@ -33,13 +33,57 @@ const products = [
   },
 ]
 
+import { useRef } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(ScrollTrigger);
+
 const ProductGrid = () => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!contentRef.current || !sectionRef.current) return;
+
+    // Viewport enter: Fade in and slide up
+    gsap.fromTo(contentRef.current,
+      { opacity: 0, y: 60 },
+      {
+        opacity: 1,
+        y: 0,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 80%',
+          end: 'top 30%',
+          scrub: 1.5,
+        }
+      }
+    );
+
+    // Viewport exit: Fade out and slide up
+    gsap.to(contentRef.current, {
+      opacity: 0,
+      y: -60,
+      ease: 'power2.in',
+      scrollTrigger: {
+        trigger: sectionRef.current,
+        start: 'bottom 80%',
+        end: 'bottom 35%',
+        scrub: 1.5,
+      }
+    });
+  }, { scope: sectionRef });
+
   return (
     <section
+      ref={sectionRef}
       id="collections"
-      className="scroll-mt-24 border-y border-white/5 bg-transparent px-6 py-20 md:px-12 md:py-28"
+      className="scroll-mt-24 border-y border-white/5 bg-transparent px-6 py-32 md:px-12 md:py-48 min-h-screen flex items-center justify-center"
     >
-      <div className="mx-auto max-w-6xl">
+      <div ref={contentRef} className="mx-auto max-w-6xl w-full">
         <div className="mb-12 max-w-2xl">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-600">
             The Collections
@@ -53,7 +97,7 @@ const ProductGrid = () => {
           {products.map((product) => (
             <article
               key={product.name}
-              className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-neutral-950/75 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-neutral-900/80"
+              className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-neutral-950/65 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:border-amber-500/30 hover:bg-neutral-900/85"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 via-transparent to-amber-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 

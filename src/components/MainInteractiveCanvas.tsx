@@ -2,26 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import Hero from './hero';
-import ProductGrid from './ProductGrid';
-import BrewingRitual from './BrewingRitual';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const MainInteractiveCanvas = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  const heroWrapperRef = useRef<HTMLDivElement>(null);
-  const gridWrapperRef = useRef<HTMLDivElement>(null);
-  const ritualWrapperRef = useRef<HTMLDivElement>(null);
 
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const totalFrames = 120;
+
+  const targetFrame = useRef({ val: 0 });
+  const currentFrameRef = useRef(0);
 
   // Preload images
   useEffect(() => {
@@ -56,7 +50,7 @@ const MainInteractiveCanvas = () => {
     preload();
   }, []);
 
-  // Handle canvas drawing on resize & load
+  // Handle canvas drawing with backing store resolution scaling
   const drawFrame = (index: number) => {
     const canvas = canvasRef.current;
     if (!canvas || imagesRef.current.length === 0) return;
@@ -66,36 +60,72 @@ const MainInteractiveCanvas = () => {
     const img = imagesRef.current[index];
     if (!img) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Calculate dimensions to maintain aspect ratio (cover style)
-    const canvasRatio = canvas.width / canvas.height;
-    const imgRatio = img.width / img.height;
-    let drawWidth = canvas.width;
-    let drawHeight = canvas.height;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    if (canvasRatio > imgRatio) {
-      drawHeight = canvas.width / imgRatio;
-      offsetY = (canvas.height - drawHeight) / 2;
-    } else {
-      drawWidth = canvas.height * imgRatio;
-      offsetX = (canvas.width - drawWidth) / 2;
+    // Correct backing store resolution (Fix Pixelation)
+    const width = canvas.clientWidth * window.devicePixelRatio;
+    const height = canvas.clientHeight * window.devicePixelRatio;
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
     }
 
-    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    // Ensure the 2D context scales appropriately
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    // Clean seamless image-fit drawing (Object-Fit: Cover)
+    const ratio = Math.max(canvas.clientWidth / img.width, canvas.clientHeight / img.height);
+    const centerShiftX = (canvas.clientWidth - img.width * ratio) / 2;
+    const centerShiftY = (canvas.clientHeight - img.height * ratio) / 2;
+    
+    ctx.drawImage(
+      img, 
+      0, 
+      0, 
+      img.width, 
+      img.height, 
+      centerShiftX, 
+      centerShiftY, 
+      img.width * ratio, 
+      img.height * ratio
+    );
+
+    ctx.restore();
   };
 
-  // Handle window resizing
+  // Continuous independent requestAnimationFrame rendering loop (Fix Frame Skipping)
+  useEffect(() => {
+    if (!imagesLoaded) return;
+
+    let animationId: number;
+    const render = () => {
+      // Smoothly lerp towards target frame value
+      const diff = targetFrame.current.val - currentFrameRef.current;
+      if (Math.abs(diff) > 0.001) {
+        currentFrameRef.current += diff * 0.15;
+      } else {
+        currentFrameRef.current = targetFrame.current.val;
+      }
+
+      // Draw the image corresponding to Math.round(currentFrame)
+      drawFrame(Math.round(currentFrameRef.current));
+
+      animationId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, [imagesLoaded]);
+
+  // Initial draw and window resizing support
   useEffect(() => {
     const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
       if (imagesLoaded) {
-        drawFrame(0);
+        drawFrame(Math.round(currentFrameRef.current));
       }
     };
 
@@ -105,55 +135,41 @@ const MainInteractiveCanvas = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [imagesLoaded]);
 
-  // Initial frame draw
-  useEffect(() => {
-    if (imagesLoaded) {
-      drawFrame(0);
-    }
-  }, [imagesLoaded]);
-
   // GSAP ScrollTrigger timeline configuration
   useGSAP(() => {
-    if (!imagesLoaded || !triggerRef.current || !containerRef.current) return;
+    if (!imagesLoaded) return;
 
-    const playhead = { frame: 0 };
-
-    // Master Timeline
+    // Master Timeline bound to #scroll-experience
     const tl = gsap.timeline({
       scrollTrigger: {
-        trigger: triggerRef.current,
+        trigger: '#scroll-experience',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: true,
-        pin: containerRef.current,
-        pinSpacing: true,
+        scrub: 1.5,
         invalidateOnRefresh: true,
       }
     });
 
-    // Timeline A: Canvas Sequence
+    // Timeline A: Canvas Sequence (tween the targetFrame val)
     // 0% -> 30% (frames 0 to 39)
-    tl.to(playhead, {
-      frame: 39,
+    tl.to(targetFrame.current, {
+      val: 39,
       ease: 'none',
       duration: 30,
-      onUpdate: () => drawFrame(Math.floor(playhead.frame)),
     }, 0);
 
     // 30% -> 70% (frames 40 to 89)
-    tl.to(playhead, {
-      frame: 89,
+    tl.to(targetFrame.current, {
+      val: 89,
       ease: 'none',
       duration: 40,
-      onUpdate: () => drawFrame(Math.floor(playhead.frame)),
     }, 30);
 
     // 70% -> 100% (frames 90 to 119)
-    tl.to(playhead, {
-      frame: 119,
+    tl.to(targetFrame.current, {
+      val: 119,
       ease: 'none',
       duration: 30,
-      onUpdate: () => drawFrame(Math.floor(playhead.frame)),
     }, 70);
 
     // Timeline B: Video Parallax (70% -> 100%)
@@ -163,51 +179,10 @@ const MainInteractiveCanvas = () => {
       duration: 30,
     }, 70);
 
-    // Timeline C: Foreground UI Animations
-    // Hero Layout (0% -> 25%): Fade out and scale up
-    tl.to(heroWrapperRef.current, {
-      opacity: 0,
-      scale: 1.12,
-      ease: 'power1.inOut',
-      duration: 25,
-    }, 0);
-
-    // Collections Grid (35% -> 65%): Slide up and fade in
-    tl.fromTo(gridWrapperRef.current,
-      { opacity: 0, y: 60 },
-      {
-        opacity: 1,
-        y: 0,
-        ease: 'power2.out',
-        duration: 30,
-      },
-      35
-    );
-
-    // Collections Grid fade out (65% -> 70%) to clear the canvas cutout
-    tl.to(gridWrapperRef.current, {
-      opacity: 0,
-      y: -60,
-      ease: 'power2.in',
-      duration: 5,
-    }, 65);
-
-    // Brewing Ritual (72% -> 97%): Fade in and slide up
-    tl.fromTo(ritualWrapperRef.current,
-      { opacity: 0, y: 60 },
-      {
-        opacity: 1,
-        y: 0,
-        ease: 'power2.out',
-        duration: 25,
-      },
-      72
-    );
-
-  }, { dependencies: [imagesLoaded], scope: triggerRef });
+  }, { dependencies: [imagesLoaded] });
 
   return (
-    <div ref={triggerRef} className="relative w-full h-[400vh]">
+    <div className="absolute inset-0 pointer-events-none">
       {/* Loading Overlay */}
       {!imagesLoaded && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0d0b] text-white">
@@ -226,60 +201,25 @@ const MainInteractiveCanvas = () => {
         </div>
       )}
 
-      {/* Pinned Viewport Container */}
-      <div ref={containerRef} className="w-full h-screen overflow-hidden">
-        {/* Layer 10 (Base): Background Video */}
-        <div className="absolute inset-0 z-10 pointer-events-none w-full h-full overflow-hidden">
-          <video
-            ref={videoRef}
-            src="/assets/crema-core.mp4"
-            className="w-full h-[120%] object-cover absolute top-0 left-0"
-            loop
-            muted
-            playsInline
-            autoPlay
-          />
-        </div>
-
-        {/* Layer 20 (Middle): Canvas Sequence */}
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 z-20 pointer-events-none w-full h-full object-cover"
+      {/* Layer 10 (Base): Background Video */}
+      <div className="fixed inset-0 z-10 pointer-events-none w-full h-full overflow-hidden">
+        <video
+          ref={videoRef}
+          src="/assets/crema-core.mp4"
+          className="w-full h-[120%] object-cover absolute top-0 left-0"
+          loop
+          muted
+          playsInline
+          autoPlay
         />
-
-        {/* Layer 30 (Top): Foreground overlays */}
-        <div className="absolute inset-0 z-30 w-full h-full pointer-events-none">
-          {/* Hero Section Container */}
-          <div 
-            ref={heroWrapperRef} 
-            className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-auto"
-          >
-            <Hero />
-          </div>
-
-          {/* Collections Grid Section Container */}
-          <div 
-            ref={gridWrapperRef} 
-            className="absolute inset-0 w-full h-full flex items-center justify-center overflow-y-auto"
-            style={{ opacity: 0 }}
-          >
-            <div className="w-full max-w-6xl px-6 pointer-events-auto">
-              <ProductGrid />
-            </div>
-          </div>
-
-          {/* Brewing Ritual Section Container */}
-          <div 
-            ref={ritualWrapperRef} 
-            className="absolute inset-0 w-full h-full flex items-center justify-center overflow-y-auto"
-            style={{ opacity: 0 }}
-          >
-            <div className="w-full max-w-6xl px-6 pointer-events-auto">
-              <BrewingRitual />
-            </div>
-          </div>
-        </div>
       </div>
+
+      {/* Layer 20 (Middle): Canvas Sequence */}
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 z-20 pointer-events-none w-full h-full"
+        style={{ width: '100vw', height: '100vh' }}
+      />
     </div>
   );
 };
