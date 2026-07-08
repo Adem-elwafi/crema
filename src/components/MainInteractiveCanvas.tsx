@@ -60,9 +60,10 @@ const MainInteractiveCanvas = () => {
     const img = imagesRef.current[index];
     if (!img) return;
 
-    // Correct backing store resolution (Fix Pixelation)
-    const width = canvas.clientWidth * window.devicePixelRatio;
-    const height = canvas.clientHeight * window.devicePixelRatio;
+    // Cap the device pixel ratio multiplier to prevent GPU over-allocation (Fix Pixelation)
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const width = canvas.clientWidth * dpr;
+    const height = canvas.clientHeight * dpr;
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
@@ -72,10 +73,16 @@ const MainInteractiveCanvas = () => {
 
     ctx.save();
     // Ensure the 2D context scales appropriately
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.scale(dpr, dpr);
 
-    // Clean seamless image-fit drawing (Object-Fit: Cover)
-    const ratio = Math.max(canvas.clientWidth / img.width, canvas.clientHeight / img.height);
+    // Clean seamless image-fit drawing (Object-Fit: Cover with Max-Scale Bounding)
+    let ratio = Math.max(canvas.clientWidth / img.width, canvas.clientHeight / img.height);
+    
+    // Zoom out slightly on screens wider than 1440px to create elegant framing space
+    if (window.innerWidth > 1440) {
+      ratio = ratio * 0.82;
+    }
+
     const centerShiftX = (canvas.clientWidth - img.width * ratio) / 2;
     const centerShiftY = (canvas.clientHeight - img.height * ratio) / 2;
     
@@ -94,16 +101,16 @@ const MainInteractiveCanvas = () => {
     ctx.restore();
   };
 
-  // Continuous independent requestAnimationFrame rendering loop (Fix Frame Skipping)
+  // Continuous independent requestAnimationFrame rendering loop with weighted inertia
   useEffect(() => {
     if (!imagesLoaded) return;
 
     let animationId: number;
     const render = () => {
-      // Smoothly lerp towards target frame value
+      // Smoothly lerp towards target frame value with a 0.09 weighted inertia multiplier
       const diff = targetFrame.current.val - currentFrameRef.current;
       if (Math.abs(diff) > 0.001) {
-        currentFrameRef.current += diff * 0.15;
+        currentFrameRef.current += diff * 0.09;
       } else {
         currentFrameRef.current = targetFrame.current.val;
       }
