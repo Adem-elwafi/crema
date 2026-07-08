@@ -53,10 +53,14 @@ const MainInteractiveCanvas = () => {
   // Handle canvas drawing with backing store resolution scaling
   const drawFrame = (index: number) => {
     const canvas = canvasRef.current;
-    if (!canvas || imagesRef.current.length === 0) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 1. CLEAR CANVAS ON EVERY TICK (at the very beginning to support transparency overlays)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (imagesRef.current.length === 0) return;
     const img = imagesRef.current[index];
     if (!img) return;
 
@@ -67,13 +71,16 @@ const MainInteractiveCanvas = () => {
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
+      // Context properties are reset when resizing, so clear it again
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
     // Ensure the 2D context scales appropriately
     ctx.scale(dpr, dpr);
+
+    // Explicit composite operation for blending alpha channels
+    ctx.globalCompositeOperation = 'source-over';
 
     // Clean seamless image-fit drawing (Object-Fit: Cover with Max-Scale Bounding)
     let ratio = Math.max(canvas.clientWidth / img.width, canvas.clientHeight / img.height);
@@ -213,7 +220,7 @@ const MainInteractiveCanvas = () => {
         <video
           ref={videoRef}
           src="/assets/crema-core.mp4"
-          className="w-full h-[120%] object-cover absolute top-0 left-0"
+          className="w-full h-[120%] object-cover absolute top-0 left-0 pointer-events-none"
           loop
           muted
           playsInline
@@ -224,7 +231,7 @@ const MainInteractiveCanvas = () => {
       {/* Layer 20 (Middle): Canvas Sequence */}
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 z-20 pointer-events-none w-full h-full"
+        className="fixed inset-0 z-20 pointer-events-none w-full h-full bg-transparent"
         style={{ width: '100vw', height: '100vh' }}
       />
     </div>
