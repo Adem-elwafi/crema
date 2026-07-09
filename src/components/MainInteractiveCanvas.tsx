@@ -57,21 +57,20 @@ const MainInteractiveCanvas = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 1. CLEAR CANVAS ON EVERY TICK (at the very beginning to support transparency overlays)
+    // 1. CLEAR CANVAS ON EVERY TICK
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (imagesRef.current.length === 0) return;
     const img = imagesRef.current[index];
     if (!img) return;
 
-    // Cap the device pixel ratio multiplier to prevent GPU over-allocation (Fix Pixelation)
+    // Cap the device pixel ratio multiplier to prevent GPU over-allocation
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const width = canvas.clientWidth * dpr;
     const height = canvas.clientHeight * dpr;
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
-      // Context properties are reset when resizing, so clear it again
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -82,12 +81,18 @@ const MainInteractiveCanvas = () => {
     // Explicit composite operation for blending alpha channels
     ctx.globalCompositeOperation = 'source-over';
 
-    // Clean seamless image-fit drawing (Object-Fit: Cover with Max-Scale Bounding)
-    let ratio = Math.max(canvas.clientWidth / img.width, canvas.clientHeight / img.height);
+    // 2. RE-CENTER THE ASPECT RATIO CALCULATION
+    const wScale = canvas.clientWidth / img.width;
+    const hScale = canvas.clientHeight / img.height;
     
-    // Zoom out slightly on screens wider than 1440px to create elegant framing space
+    // Choose cover or contain based on viewport bounds
+    let ratio = Math.max(wScale, hScale); // Cover by default
+
+    // On wide desktop viewports, constrain the sequence frames to leave horizontal & vertical breathing room
     if (window.innerWidth > 1440) {
-      ratio = ratio * 0.82;
+      ratio = Math.min(wScale, hScale) * 0.88;
+    } else if (window.innerWidth > 1024) {
+      ratio = Math.min(wScale, hScale) * 0.95;
     }
 
     const centerShiftX = (canvas.clientWidth - img.width * ratio) / 2;
@@ -114,7 +119,6 @@ const MainInteractiveCanvas = () => {
 
     let animationId: number;
     const render = () => {
-      // Smoothly lerp towards target frame value with a 0.09 weighted inertia multiplier
       const diff = targetFrame.current.val - currentFrameRef.current;
       if (Math.abs(diff) > 0.001) {
         currentFrameRef.current += diff * 0.09;
@@ -122,7 +126,6 @@ const MainInteractiveCanvas = () => {
         currentFrameRef.current = targetFrame.current.val;
       }
 
-      // Draw the image corresponding to Math.round(currentFrame)
       drawFrame(Math.round(currentFrameRef.current));
 
       animationId = requestAnimationFrame(render);
@@ -164,7 +167,7 @@ const MainInteractiveCanvas = () => {
       }
     });
 
-    // Timeline A: Canvas Sequence (tween the targetFrame val)
+    // Timeline A: Canvas Sequence
     // 0% -> 30% (frames 0 to 39)
     tl.to(targetFrame.current, {
       val: 39,
@@ -196,10 +199,10 @@ const MainInteractiveCanvas = () => {
   }, { dependencies: [imagesLoaded] });
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="fixed inset-0 w-full h-screen pointer-events-none">
       {/* Loading Overlay */}
       {!imagesLoaded && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0d0b] text-white">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0d0b] text-white pointer-events-auto">
           <div className="mb-4 text-xs font-semibold uppercase tracking-[0.3em] text-amber-600">
             CREMA / NOIR
           </div>
@@ -215,24 +218,21 @@ const MainInteractiveCanvas = () => {
         </div>
       )}
 
-      {/* Layer 10 (Base): Background Video */}
-      <div className="fixed inset-0 z-10 pointer-events-none w-full h-full overflow-hidden">
-        <video
-          ref={videoRef}
-          src="/assets/crema-core.mp4"
-          className="w-full h-[120%] object-cover absolute top-0 left-0 pointer-events-none"
-          loop
-          muted
-          playsInline
-          autoPlay
-        />
-      </div>
+      {/* Layer 10 (Base): Background Video (exact same sizing parameters) */}
+      <video
+        ref={videoRef}
+        src="/assets/crema-core.mp4"
+        className="absolute inset-0 z-10 w-full h-full object-cover pointer-events-none"
+        loop
+        muted
+        playsInline
+        autoPlay
+      />
 
-      {/* Layer 20 (Middle): Canvas Sequence */}
+      {/* Layer 20 (Middle): Canvas Sequence (exact same sizing parameters) */}
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 z-20 pointer-events-none w-full h-full bg-transparent"
-        style={{ width: '100vw', height: '100vh' }}
+        className="absolute inset-0 z-20 w-full h-full bg-transparent pointer-events-none"
       />
     </div>
   );
