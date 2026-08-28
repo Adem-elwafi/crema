@@ -1,0 +1,173 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - navigation [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: CREMA
+        - generic [ref=e8]:
+          - link "Home" [ref=e9] [cursor=pointer]:
+            - /url: "#home"
+          - link "Menu" [ref=e10] [cursor=pointer]:
+            - /url: "#menu"
+          - link "About" [ref=e11] [cursor=pointer]:
+            - /url: "#about"
+          - link "Gallery" [ref=e12] [cursor=pointer]:
+            - /url: "#gallery"
+          - link "Contact" [ref=e13] [cursor=pointer]:
+            - /url: "#contact"
+        - button "Order Online" [ref=e15]
+  - generic [ref=e16]:
+    - button "Open menu" [ref=e19]
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - img "Flying Coffee Beans"
+          - generic:
+            - generic:
+              - generic:
+                - img "Single Coffee Bean"
+          - generic:
+            - generic:
+              - generic:
+                - img "Cinnamon Stick"
+          - generic:
+            - generic:
+              - generic:
+                - img "Sugar Cubes"
+          - generic:
+            - generic:
+              - generic:
+                - img "Single Coffee Bean"
+          - generic:
+            - generic:
+              - generic:
+                - img "Single Coffee Bean"
+          - generic:
+            - generic:
+              - generic:
+                - img "Cream Splash"
+          - generic:
+            - generic:
+              - generic:
+                - img "Single Coffee Bean"
+          - generic:
+            - generic:
+              - generic:
+                - img "Flying Coffee Beans"
+          - generic:
+            - generic:
+              - generic:
+                - img "Mint Leaf"
+          - generic:
+            - generic:
+              - generic:
+                - img "Sugar Cubes"
+        - generic:
+          - generic:
+            - img "Classic Espresso"
+        - generic:
+          - generic:
+            - img "Velvet Cappuccino"
+    - generic [ref=e259]:
+      - generic [ref=e260]:
+        - generic [ref=e261]: "02"
+        - generic [ref=e263]: "04"
+      - generic [ref=e264]: RICH & FOAMY
+      - heading "Velvet Cappuccino" [level=1] [ref=e265]:
+        - generic [ref=e266]: Velvet
+        - generic [ref=e268]: Cappuccino
+      - paragraph [ref=e270]: Silky steamed whole milk married with our double-shot espresso, crowned with artisanal foam rosetta art.
+      - generic [ref=e271]:
+        - generic [ref=e272]: $5.00
+        - button "Order Now" [ref=e273]
+    - generic [ref=e41]:
+      - button [disabled]
+      - button [disabled]
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - text: Featured Selections
+          - heading "Our Menu" [level=2] [ref=e57]
+        - button "Close drawer" [ref=e58]
+      - generic [ref=e62]:
+        - button "Classic Espresso PURE & INTENSE Classic Espresso $4.50" [ref=e63]:
+          - img "Classic Espresso" [ref=e65]
+          - generic [ref=e66]:
+            - generic [ref=e67]: PURE & INTENSE
+            - heading "Classic Espresso" [level=3] [ref=e68]
+            - paragraph [ref=e69]: $4.50
+        - button "Velvet Cappuccino RICH & FOAMY Velvet Cappuccino $5.00" [ref=e70]:
+          - img "Velvet Cappuccino" [ref=e72]
+          - generic [ref=e73]:
+            - generic [ref=e74]: RICH & FOAMY
+            - heading "Velvet Cappuccino" [level=3] [ref=e75]
+            - paragraph [ref=e76]: $5.00
+        - button "Artisan Iced Latte SMOOTH & CHILLED Artisan Iced Latte $5.50" [ref=e77]:
+          - img "Artisan Iced Latte" [ref=e79]
+          - generic [ref=e80]:
+            - generic [ref=e81]: SMOOTH & CHILLED
+            - heading "Artisan Iced Latte" [level=3] [ref=e82]
+            - paragraph [ref=e83]: $5.50
+        - button "Slow-Drip Cold Brew STEEPED & CRISP Slow-Drip Cold Brew $4.75" [ref=e84]:
+          - img "Slow-Drip Cold Brew" [ref=e86]
+          - generic [ref=e87]:
+            - generic [ref=e88]: STEEPED & CRISP
+            - heading "Slow-Drip Cold Brew" [level=3] [ref=e89]
+            - paragraph [ref=e90]: $4.75
+  - contentinfo [ref=e209]:
+    - generic [ref=e210]:
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - heading "CREMA" [level=3] [ref=e213]
+          - paragraph [ref=e214]: Premium coffee, crafted with love. A place where every cup tells a story.
+          - generic [ref=e215]:
+            - link [ref=e216] [cursor=pointer]:
+              - /url: "#"
+            - link [ref=e220] [cursor=pointer]:
+              - /url: "#"
+            - link [ref=e223] [cursor=pointer]:
+              - /url: "#"
+        - generic [ref=e226]:
+          - heading "Quick Links" [level=4] [ref=e227]
+          - list [ref=e228]:
+            - listitem [ref=e229]:
+              - link "Home" [ref=e230] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e231]:
+              - link "Menu" [ref=e232] [cursor=pointer]:
+                - /url: "#menu"
+            - listitem [ref=e233]:
+              - link "About" [ref=e234] [cursor=pointer]:
+                - /url: "#about"
+            - listitem [ref=e235]:
+              - link "Gallery" [ref=e236] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e237]:
+              - link "Contact" [ref=e238] [cursor=pointer]:
+                - /url: "#contact"
+        - generic [ref=e239]:
+          - heading "Contact" [level=4] [ref=e240]
+          - list [ref=e241]:
+            - listitem [ref=e242]: 123 Coffee Street
+            - listitem [ref=e243]: Beanville, CB 12345
+            - listitem [ref=e244]:
+              - link "(555) 123-4567" [ref=e245] [cursor=pointer]:
+                - /url: tel:5551234567
+            - listitem [ref=e246]:
+              - link "hello@crema.com" [ref=e247] [cursor=pointer]:
+                - /url: mailto:hello@crema.com
+        - generic [ref=e248]:
+          - heading "Hours" [level=4] [ref=e249]
+          - list [ref=e250]:
+            - listitem [ref=e251]: "Monday-Friday: 7AM - 9PM"
+            - listitem [ref=e252]: "Saturday: 8AM - 10PM"
+            - listitem [ref=e253]: "Sunday: 9AM - 8PM"
+      - generic [ref=e254]:
+        - paragraph [ref=e255]: © 2026 CREMA. All rights reserved.
+        - generic [ref=e256]:
+          - link "Privacy Policy" [ref=e257] [cursor=pointer]:
+            - /url: "#"
+          - link "Terms & Conditions" [ref=e258] [cursor=pointer]:
+            - /url: "#"
