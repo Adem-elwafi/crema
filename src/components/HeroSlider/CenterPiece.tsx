@@ -75,8 +75,9 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
             exit={{ opacity: 0, x: direction * -280, rotate: direction * 50, scale: 0.8 }}
             transition={{ duration: 0.85, ease: [0.65, 0, 0.35, 1] }}
             className="absolute inset-0 z-[1] flex items-center justify-center"
+            style={{ willChange: 'transform, opacity' }}
           >
-            <div ref={cupFloatRef} className="w-full h-full flex items-center justify-center">
+            <div ref={cupFloatRef} className="w-full h-full flex items-center justify-center" style={{ willChange: 'transform' }}>
               <img
                 src={slide.image}
                 alt={slide.title}

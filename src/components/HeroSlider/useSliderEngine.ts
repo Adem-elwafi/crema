@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-export function useSliderEngine(totalSlides: number) {
+export function useSliderEngine(totalSlides: number, isPaused: boolean = false) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -36,8 +36,10 @@ export function useSliderEngine(totalSlides: number) {
     isDrawerOpenRef.current = val;
   }, []);
 
-  // Auto-play: 5s interval, pauses on hover/animating/drawer open
+  // Auto-play: 5s interval, pauses on hover/animating/drawer open, and respects external isPaused state
   useEffect(() => {
+    if (isPaused) return;
+    
     const interval = setInterval(() => {
       if (!isAnimating && !isHoveredRef.current && !isDrawerOpenRef.current) {
         setDirection(1);
@@ -47,7 +49,7 @@ export function useSliderEngine(totalSlides: number) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isAnimating, totalSlides]);
+  }, [isAnimating, totalSlides, isPaused]);
 
   // Keyboard navigation
   useEffect(() => {

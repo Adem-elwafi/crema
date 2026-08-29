@@ -63,12 +63,13 @@ export default function FloatingIngredients({ ingredients, slideId, direction }:
                   scale: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1] },
                   delay: i * 0.03
                 }}
+                style={{ willChange: 'transform, opacity' }}
               >
                 <motion.div
                   initial={{ rotate: ingredient.rotation }}
                   animate={{ rotate: targetRotation }}
                   transition={{ duration: cfg.spinDuration, repeat: Infinity, ease: 'linear' }}
-                  style={{ filter: cfg.blur }}
+                  style={{ filter: cfg.blur, willChange: 'transform' }}
                 >
                   <img
                     src={ingredient.image}

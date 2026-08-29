@@ -14,18 +14,18 @@ const EASE = [0.65, 0, 0.35, 1] as const;
 
 const innerVariants = (direction: number): Variants => ({
   enter: {
-    y: direction * 72,
+    y: direction * 35,
     opacity: 0
   },
   center: {
     y: 0,
     opacity: 1,
-    transition: { duration: 0.7, ease: EASE }
+    transition: { duration: 0.65, ease: EASE }
   },
   exit: {
-    y: direction * -72,
+    y: direction * -30,
     opacity: 0,
-    transition: { duration: 0.4, ease: EASE }
+    transition: { duration: 0.45, ease: EASE }
   }
 });
 
@@ -35,14 +35,15 @@ export default function SlideContent({ slide, slideIndex, totalSlides, direction
   const handleComplete = () => onAnimationComplete?.(slide.id);
 
   return (
-    <div className="absolute left-8 md:left-24 top-1/2 -translate-y-1/2 z-30 max-w-lg w-full px-4 md:px-0">
+    <div className="absolute left-8 md:left-24 top-1/2 -translate-y-1/2 z-30 max-w-lg w-full px-4 md:px-0 pointer-events-none">
       <AnimatePresence mode="popLayout" initial={false} custom={direction}>
         <motion.div
           key={slide.id}
           custom={direction}
+          className="w-full pointer-events-auto"
           variants={{
             enter: {},
-            center: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
+            center: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } },
             exit: {}
           }}
           initial="enter"
@@ -50,7 +51,7 @@ export default function SlideContent({ slide, slideIndex, totalSlides, direction
           exit="exit"
           onAnimationComplete={handleComplete}
         >
-          <motion.div custom={direction} variants={innerVariants(direction)} className="flex items-center space-x-4 mb-6">
+          <motion.div custom={direction} variants={innerVariants(direction)} className="flex items-center space-x-4 mb-6" style={{ willChange: 'transform, opacity' }}>
             <div className="text-4xl font-display font-bold text-[#E8C9A0]">
               {String(slideIndex + 1).padStart(2, '0')}
             </div>
@@ -64,6 +65,7 @@ export default function SlideContent({ slide, slideIndex, totalSlides, direction
             custom={direction}
             variants={innerVariants(direction)}
             className="text-sm font-bold tracking-[0.2em] text-[#C8956C] uppercase mb-4"
+            style={{ willChange: 'transform, opacity' }}
           >
             {slide.subtitle}
           </motion.div>
@@ -71,7 +73,8 @@ export default function SlideContent({ slide, slideIndex, totalSlides, direction
           <motion.h1
             custom={direction}
             variants={innerVariants(direction)}
-            className="text-5xl md:text-7xl font-display font-bold text-cream mb-6 leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]"
+            className="text-5xl md:text-7xl font-display font-bold text-cream mb-6 leading-tight"
+            style={{ willChange: 'transform, opacity', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}
           >
             {titleWords.map((word, i) => (
               <span key={i} className="inline-block overflow-hidden mr-3 pb-2">
@@ -83,7 +86,8 @@ export default function SlideContent({ slide, slideIndex, totalSlides, direction
           <motion.p
             custom={direction}
             variants={innerVariants(direction)}
-            className="text-lg text-[#E8D8C8]/90 mb-8 max-w-md font-body leading-relaxed drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]"
+            className="text-lg text-[#E8D8C8]/90 mb-8 max-w-md font-body leading-relaxed"
+            style={{ willChange: 'transform, opacity', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}
           >
             {slide.description}
           </motion.p>
@@ -92,6 +96,7 @@ export default function SlideContent({ slide, slideIndex, totalSlides, direction
             custom={direction}
             variants={innerVariants(direction)}
             className="flex items-center space-x-8"
+            style={{ willChange: 'transform, opacity' }}
           >
             <span className="text-4xl font-bold font-display text-[#E8C9A0]">
               {slide.price}

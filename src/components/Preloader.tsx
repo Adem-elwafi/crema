@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -117,12 +117,18 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       ease: 'expo.inOut'
     }, 4.0);
 
-    // 5.0s - Container fades out exactly as logo finishes translation
+    // 4.0s - Crossfade the background & rings to reveal the HeroSlider underneath seamlessly
+    tl.to('.preloader-bg-elements', {
+      opacity: 0,
+      duration: 1.0,
+      ease: 'power2.inOut'
+    }, 4.0);
+
+    // 5.2s - Container finally unmounts after the logo translation is fully complete
     tl.to(container.current, {
       opacity: 0,
-      duration: 0.3,
-      ease: 'power2.inOut'
-    }, 5.0);
+      duration: 0.1
+    }, 5.2);
 
   }, { scope: container });
 
@@ -137,14 +143,20 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
   return (
     <div 
       ref={container} 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-brown-900 overflow-hidden"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
     >
-      {/* Background Rings - Expand outward from a tiny dot */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="ring ring-4 absolute rounded-full bg-cream-dark"></div>
-        <div className="ring ring-3 absolute rounded-full bg-accent"></div>
-        <div className="ring ring-2 absolute rounded-full bg-brown-800"></div>
-        <div className="ring ring-1 absolute rounded-full bg-brown-900"></div>
+      {/* Background Elements Wrapper (Faded out early to reveal app seamlessly) */}
+      <div className="preloader-bg-elements absolute inset-0 w-full h-full">
+        {/* Base dark canvas */}
+        <div className="absolute inset-0 bg-brown-900"></div>
+        
+        {/* Background Rings - Expand outward from a tiny dot */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="ring ring-4 absolute rounded-full bg-cream-dark"></div>
+          <div className="ring ring-3 absolute rounded-full bg-accent"></div>
+          <div className="ring ring-2 absolute rounded-full bg-brown-800"></div>
+          <div className="ring ring-1 absolute rounded-full bg-brown-900"></div>
+        </div>
       </div>
 
       {/* Floating Transparent Cutouts */}

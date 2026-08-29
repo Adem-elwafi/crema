@@ -7,7 +7,7 @@ import SlideControls from './SlideControls';
 import QuickSelectDrawer from './QuickSelectDrawer';
 import { useRef, useState } from 'react';
 
-export default function HeroSlider() {
+export default function HeroSlider({ isPaused = false }: { isPaused?: boolean }) {
   const [isDrawerOpen, setIsDrawerOpenLocal] = useState(false);
 
   const {
@@ -20,7 +20,7 @@ export default function HeroSlider() {
     onSelect,
     setHovered,
     setDrawerOpen
-  } = useSliderEngine(slides.length);
+  } = useSliderEngine(slides.length, isPaused);
 
   const currentSlide = slides[currentIndex];
 

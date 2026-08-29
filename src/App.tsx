@@ -16,7 +16,7 @@ function App() {
       {!preloaderComplete && <Preloader onComplete={() => setPreloaderComplete(true)} />}
 
       <Navbar />
-      <HeroSlider />
+      <HeroSlider isPaused={!preloaderComplete} />
       <WhyChooseUs />
       <MenuHighlights />
       <VisitUs />
