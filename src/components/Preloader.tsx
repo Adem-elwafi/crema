@@ -57,16 +57,16 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       ease: 'expo.out'
     }, 1.6);
 
-    // 1.5s - Photorealistic Cutouts Burst In Radially
-    tl.fromTo('.ing-1', { x: -20, y: -20 }, { opacity: 1, scale: 1, x: -160, y: -140, rotation: -15, duration: 1.4, ease: 'expo.out' }, 1.55);
-    tl.fromTo('.ing-2', { x: 20, y: -20 }, { opacity: 1, scale: 1, x: 180, y: -120, rotation: 20, duration: 1.4, ease: 'expo.out' }, 1.6);
-    tl.fromTo('.ing-3', { x: 20, y: 20 }, { opacity: 1, scale: 1, x: 160, y: 160, rotation: -12, duration: 1.4, ease: 'expo.out' }, 1.65);
-    tl.fromTo('.ing-4', { x: -20, y: 20 }, { opacity: 1, scale: 1, x: -180, y: 140, rotation: 10, duration: 1.4, ease: 'expo.out' }, 1.7);
+    // 1.5s - Photorealistic Cutouts Burst In Radially (further from the central logo for clean breathing room)
+    tl.fromTo('.ing-1', { x: -30, y: -30 }, { opacity: 1, scale: 1, x: -260, y: -180, rotation: -15, duration: 1.4, ease: 'expo.out' }, 1.55);
+    tl.fromTo('.ing-2', { x: 30, y: -30 }, { opacity: 1, scale: 1, x: 270, y: -170, rotation: 20, duration: 1.4, ease: 'expo.out' }, 1.6);
+    tl.fromTo('.ing-3', { x: 30, y: 30 }, { opacity: 1, scale: 1, x: 250, y: 190, rotation: -12, duration: 1.4, ease: 'expo.out' }, 1.65);
+    tl.fromTo('.ing-4', { x: -30, y: 30 }, { opacity: 1, scale: 1, x: -260, y: 180, rotation: 10, duration: 1.4, ease: 'expo.out' }, 1.7);
 
     // 2.0s - Continuous Subtle Float
     tl.to('.ingredient', {
-      y: '+=35',
-      rotation: '+=8',
+      y: '+=20',
+      rotation: '+=6',
       duration: 2.5,
       ease: 'sine.inOut',
       stagger: 0.15,
@@ -75,10 +75,10 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
     }, 2.0);
 
     // 4.0s - Exit Choreo & Layout Transition
-    tl.to('.ing-1', { x: -400, y: -400, opacity: 0, scale: 0.5, duration: 1.0, ease: 'power3.inOut' }, 4.0);
-    tl.to('.ing-2', { x: 400, y: -400, opacity: 0, scale: 0.5, duration: 1.0, ease: 'power3.inOut' }, 4.0);
-    tl.to('.ing-3', { x: 400, y: 400, opacity: 0, scale: 0.5, duration: 1.0, ease: 'power3.inOut' }, 4.0);
-    tl.to('.ing-4', { x: -400, y: 400, opacity: 0, scale: 0.5, duration: 1.0, ease: 'power3.inOut' }, 4.0);
+    tl.to('.ing-1', { x: -500, y: -450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
+    tl.to('.ing-2', { x: 500, y: -450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
+    tl.to('.ing-3', { x: 500, y: 450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
+    tl.to('.ing-4', { x: -500, y: 450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
 
     // Subtext fades out instantly
     tl.to('.logo-subtext', {
@@ -164,7 +164,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
         {ingredients.map((ing, i) => (
           <div 
             key={i} 
-            className={`ingredient ${ing.class} absolute w-32 h-32 md:w-48 md:h-48 drop-shadow-2xl`}
+            className={`ingredient ${ing.class} absolute w-20 h-20 sm:w-24 sm:h-24 md:w-36 md:h-36 drop-shadow-2xl`}
           >
             <img src={ing.src} alt={ing.alt} className="w-full h-full object-contain" />
           </div>

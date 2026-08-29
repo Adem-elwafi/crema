@@ -1,14 +1,11 @@
-import { Menu } from 'lucide-react';
 import { slides } from '../../data/slides';
 import { useSliderEngine } from './useSliderEngine';
 import CenterPiece from './CenterPiece';
 import SlideContent from './SlideContent';
 import SlideControls from './SlideControls';
-import QuickSelectDrawer from './QuickSelectDrawer';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 export default function HeroSlider({ isPaused = false }: { isPaused?: boolean }) {
-  const [isDrawerOpen, setIsDrawerOpenLocal] = useState(false);
 
   const {
     currentIndex,
@@ -17,9 +14,7 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
     setIsAnimating,
     onNext,
     onPrev,
-    onSelect,
     setHovered,
-    setDrawerOpen
   } = useSliderEngine(slides.length, isPaused);
 
   const currentSlide = slides[currentIndex];
@@ -38,16 +33,6 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
     }
   };
 
-  const handleDrawerOpen = () => {
-    setIsDrawerOpenLocal(true);
-    setDrawerOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setIsDrawerOpenLocal(false);
-    setDrawerOpen(false);
-  };
-
   return (
     <section
       className="relative w-full min-h-screen overflow-hidden bg-cream"
@@ -63,15 +48,6 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
         className="absolute inset-0 z-0 bg-gradient-to-br from-cream-dark to-cream"
         style={{ clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 40% 100%)' }}
       />
-
-      {/* Menu Icon */}
-      <button
-        onClick={handleDrawerOpen}
-        className="absolute top-24 right-8 z-30 p-3 rounded-full bg-cream shadow-md hover:shadow-lg text-brown-900 transition-all hover:scale-105"
-        aria-label="Open menu"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
 
       {/* Center Product Visual + anchored floating ingredients */}
       <CenterPiece
@@ -97,15 +73,6 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
         isAnimating={isAnimating}
         onPrev={onPrev}
         onNext={onNext}
-      />
-
-      {/* Quick Select Drawer */}
-      <QuickSelectDrawer
-        isOpen={isDrawerOpen}
-        slides={slides}
-        currentIndex={currentIndex}
-        onSelect={onSelect}
-        onClose={handleDrawerClose}
       />
     </section>
   );
