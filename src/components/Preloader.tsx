@@ -88,28 +88,33 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       ease: 'power3.inOut'
     }, 4.0);
 
-    // Logo translates continuously across the screen to top-left slot
+    // Logo translates continuously across the screen to target navbar logo slot
     tl.to('.logo-text', {
       x: () => {
-        const navRect = document.querySelector('header nav .font-display')?.getBoundingClientRect();
+        const navTarget = document.querySelector('[data-nav-logo]') || document.querySelector('.font-display');
         const pRect = document.querySelector('.logo-text')?.getBoundingClientRect();
-        if (navRect && pRect) {
-           return navRect.left + navRect.width/2 - (pRect.left + pRect.width/2);
+        if (navTarget && pRect) {
+          const navRect = navTarget.getBoundingClientRect();
+          return (navRect.left + navRect.width / 2) - (pRect.left + pRect.width / 2);
         }
         return -(window.innerWidth / 2) + 80;
       },
       y: () => {
-        const navRect = document.querySelector('header nav .font-display')?.getBoundingClientRect();
+        const navTarget = document.querySelector('[data-nav-logo]') || document.querySelector('.font-display');
         const pRect = document.querySelector('.logo-text')?.getBoundingClientRect();
-        if (navRect && pRect) {
-           return navRect.top + navRect.height/2 - (pRect.top + pRect.height/2);
+        if (navTarget && pRect) {
+          const navRect = navTarget.getBoundingClientRect();
+          return (navRect.top + navRect.height / 2) - (pRect.top + pRect.height / 2);
         }
         return -(window.innerHeight / 2) + 40;
       },
       scale: () => {
-        const navRect = document.querySelector('header nav .font-display')?.getBoundingClientRect();
+        const navTarget = document.querySelector('[data-nav-logo]') || document.querySelector('.font-display');
         const pRect = document.querySelector('.logo-text')?.getBoundingClientRect();
-        if (navRect && pRect) return navRect.width / pRect.width;
+        if (navTarget && pRect) {
+          const navRect = navTarget.getBoundingClientRect();
+          return navRect.width / pRect.width;
+        }
         return 0.2;
       },
       color: '#C8956C', // Transition to text-accent
@@ -173,7 +178,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
 
       {/* Central Logo */}
       <div className="logo-container absolute z-20 flex flex-col items-center justify-center pointer-events-none origin-center">
-        <h1 className="logo-text font-display text-7xl md:text-9xl text-cream font-bold tracking-[0.1em] m-0 leading-none">
+        <h1 className="logo-text font-display text-7xl md:text-9xl text-cream font-bold tracking-wider m-0 leading-none">
           CREMA
         </h1>
         <p className="logo-subtext font-body text-accent tracking-[0.4em] uppercase text-xs md:text-sm mt-6 font-medium">
