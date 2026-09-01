@@ -6,25 +6,32 @@ interface SplitNavLayerProps {
   variant: 'light' | 'dark';
   navLinks: { label: string; href: string }[];
   hoveredIndex: number | null;
-  onHoverIndex: (index: number | null) => void;
+  hoveredButton?: string | null;
   cartCount: number;
-  onCartClick: () => void;
-  onOrderClick: () => void;
-  onOpenDrawer: () => void;
+  onHoverIndex?: (index: number | null) => void;
+  onCartClick?: () => void;
+  onOrderClick?: () => void;
+  onOpenDrawer?: () => void;
+  isVisualOnly?: boolean;
 }
 
 export const SplitNavLayer = ({
   variant,
   navLinks,
   hoveredIndex,
-  onHoverIndex,
+  hoveredButton,
   cartCount,
+  onHoverIndex,
   onCartClick,
   onOrderClick,
   onOpenDrawer,
+  isVisualOnly = false,
 }: SplitNavLayerProps) => {
+  const isCartHovered = hoveredButton === 'cart';
+  const isOrderHovered = hoveredButton === 'order';
+
   return (
-    <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between relative pointer-events-auto select-none">
+    <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between relative pointer-events-none select-none">
       {/* LEFT: Dynamic Logo */}
       <div className="flex items-center z-10">
         <NavLogo isScrolled={false} variant={variant} />
@@ -36,10 +43,11 @@ export const SplitNavLayer = ({
           <WavyNavLink
             key={link.label}
             label={link.label}
-            href={link.href}
+            href={isVisualOnly ? undefined : link.href}
             variant={variant}
             isHovered={hoveredIndex === idx}
-            onHoverChange={(hovered) => onHoverIndex(hovered ? idx : null)}
+            onHoverChange={onHoverIndex ? (hovered) => onHoverIndex(hovered ? idx : null) : undefined}
+            interactive={!isVisualOnly}
           />
         ))}
       </nav>
@@ -50,11 +58,18 @@ export const SplitNavLayer = ({
         <div className="hidden md:flex items-center gap-3">
           <button
             onClick={onCartClick}
+            tabIndex={isVisualOnly ? -1 : 0}
             aria-label="View Cart"
-            className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 shadow-sm cursor-pointer ${
+            className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-300 shadow-sm ${
+              isVisualOnly ? 'pointer-events-none' : 'cursor-pointer'
+            } ${
               variant === 'light'
-                ? 'border-cream/30 text-cream hover:border-gold hover:text-gold hover:bg-white/5'
-                : 'border-brown-900/30 text-brown-900 hover:border-brown-900 hover:text-accent-dark hover:bg-brown-900/5'
+                ? isCartHovered
+                  ? 'border-gold text-gold bg-white/10'
+                  : 'border-cream/30 text-cream'
+                : isCartHovered
+                ? 'border-brown-900 text-accent-dark bg-brown-900/10'
+                : 'border-brown-900/30 text-brown-900'
             }`}
           >
             <ShoppingBag size={17} strokeWidth={2.2} />
@@ -73,10 +88,17 @@ export const SplitNavLayer = ({
 
           <button
             onClick={onOrderClick}
-            className={`px-6 py-2.5 rounded-full font-body text-xs tracking-[0.2em] uppercase font-bold transition-all duration-300 active:scale-95 cursor-pointer shadow-md ${
+            tabIndex={isVisualOnly ? -1 : 0}
+            className={`px-6 py-2.5 rounded-full font-body text-xs tracking-[0.2em] uppercase font-bold transition-all duration-300 active:scale-95 shadow-md ${
+              isVisualOnly ? 'pointer-events-none' : 'cursor-pointer'
+            } ${
               variant === 'light'
-                ? 'bg-accent text-brown-900 hover:bg-gold hover:shadow-accent/30'
-                : 'bg-brown-900 text-cream hover:bg-brown-800 hover:shadow-brown-900/30'
+                ? isOrderHovered
+                  ? 'bg-gold text-brown-900 shadow-accent/40 scale-105'
+                  : 'bg-accent text-brown-900 hover:bg-gold'
+                : isOrderHovered
+                ? 'bg-brown-800 text-cream shadow-brown-900/40 scale-105'
+                : 'bg-brown-900 text-cream hover:bg-brown-800'
             }`}
           >
             Order Online
@@ -87,11 +109,14 @@ export const SplitNavLayer = ({
         <div className="md:hidden flex items-center gap-2.5">
           <button
             onClick={onCartClick}
+            tabIndex={isVisualOnly ? -1 : 0}
             aria-label="View Cart"
-            className={`relative w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 shadow-sm cursor-pointer ${
+            className={`relative w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 shadow-sm ${
+              isVisualOnly ? 'pointer-events-none' : 'cursor-pointer'
+            } ${
               variant === 'light'
-                ? 'border-cream/30 text-cream hover:text-gold'
-                : 'border-brown-900/30 text-brown-900 hover:text-accent-dark'
+                ? 'border-cream/30 text-cream'
+                : 'border-brown-900/30 text-brown-900'
             }`}
           >
             <ShoppingBag size={15} strokeWidth={2.2} />
@@ -110,11 +135,14 @@ export const SplitNavLayer = ({
 
           <button
             onClick={onOpenDrawer}
+            tabIndex={isVisualOnly ? -1 : 0}
             aria-label="Open mobile navigation"
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${
+            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
+              isVisualOnly ? 'pointer-events-none' : 'cursor-pointer'
+            } ${
               variant === 'light'
-                ? 'border-cream/30 text-cream hover:text-gold'
-                : 'border-brown-900/30 text-brown-900 hover:text-accent-dark'
+                ? 'border-cream/30 text-cream'
+                : 'border-brown-900/30 text-brown-900'
             }`}
           >
             <div className="space-y-1">
@@ -127,3 +155,4 @@ export const SplitNavLayer = ({
     </div>
   );
 };
+

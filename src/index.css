@@ -32,11 +32,6 @@
   font-feature-settings: "liga", "kern";
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
 /* Selection color */
 ::selection {
   background-color: #C8956C;

@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { useLenis } from '../context/LenisContext';
 import { NavLogo } from './navbar/NavLogo';
 import { CompactActions } from './navbar/CompactActions';
 import { MenuDrawer } from './navbar/MenuDrawer';
 import { SplitNavLayer } from './navbar/SplitNavLayer';
+import { MasterNavOverlay } from './navbar/MasterNavOverlay';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -11,6 +13,18 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(2);
   const [orderToast, setOrderToast] = useState<string | null>(null);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
+  const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+  const lenis = useLenis();
+
+  const handleDrawerOpen = useCallback(() => {
+    setIsDrawerOpen(true);
+    lenis?.stop();
+  }, [lenis]);
+
+  const handleDrawerClose = useCallback(() => {
+    setIsDrawerOpen(false);
+    lenis?.start();
+  }, [lenis]);
 
   // Monitor scroll position with Framer Motion for 60fps performance
   const { scrollY } = useScroll();
@@ -56,37 +70,47 @@ export default function Navbar() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-x-0 top-0 h-screen pointer-events-none z-50 overflow-hidden"
           >
-            {/* LAYER 1: Dark Brown Region (Left: polygon 0 0, 55% 0, 40% 100%, 0 100%) */}
+            {/* LAYER 1: Dark Brown Region (Left: polygon 0 0, 55% 0, 40% 100%, 0 100%) - VISUAL */}
             <div
-              className="absolute inset-0 pointer-events-none pt-6"
+              className="absolute inset-0 pointer-events-none pt-6 select-none"
               style={{ clipPath: 'polygon(0 0, 55% 0, 40% 100%, 0 100%)' }}
+              aria-hidden="true"
             >
               <SplitNavLayer
                 variant="light"
                 navLinks={navLinks}
                 hoveredIndex={hoveredNavIndex}
-                onHoverIndex={setHoveredNavIndex}
+                hoveredButton={hoveredButton}
                 cartCount={cartCount}
-                onCartClick={handleCartClick}
-                onOrderClick={handleOrderClick}
-                onOpenDrawer={() => setIsDrawerOpen(true)}
+                isVisualOnly={true}
               />
             </div>
 
-            {/* LAYER 2: Light Cream Region (Right: polygon 55% 0, 100% 0, 100% 100%, 40% 100%) */}
+            {/* LAYER 2: Light Cream Region (Right: polygon 55% 0, 100% 0, 100% 100%, 40% 100%) - VISUAL */}
             <div
-              className="absolute inset-0 pointer-events-none pt-6"
+              className="absolute inset-0 pointer-events-none pt-6 select-none"
               style={{ clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 40% 100%)' }}
+              aria-hidden="true"
             >
               <SplitNavLayer
                 variant="dark"
                 navLinks={navLinks}
                 hoveredIndex={hoveredNavIndex}
-                onHoverIndex={setHoveredNavIndex}
+                hoveredButton={hoveredButton}
                 cartCount={cartCount}
+                isVisualOnly={true}
+              />
+            </div>
+
+            {/* MASTER INTERACTIVE HIT-TEST OVERLAY (Unified hit-testing across both split regions) */}
+            <div className="absolute inset-x-0 top-0 pt-6 pointer-events-auto">
+              <MasterNavOverlay
+                navLinks={navLinks}
+                onHoverNavIndex={setHoveredNavIndex}
+                onHoverButton={setHoveredButton}
                 onCartClick={handleCartClick}
                 onOrderClick={handleOrderClick}
-                onOpenDrawer={() => setIsDrawerOpen(true)}
+                onOpenDrawer={handleDrawerOpen}
               />
             </div>
           </motion.div>
@@ -114,7 +138,7 @@ export default function Navbar() {
               <div className="pointer-events-auto flex items-center z-10">
                 <CompactActions
                   isMenuOpen={isDrawerOpen}
-                  onToggleMenu={() => setIsDrawerOpen(!isDrawerOpen)}
+                  onToggleMenu={() => (isDrawerOpen ? handleDrawerClose() : handleDrawerOpen())}
                   onOrderClick={handleOrderClick}
                   onCartClick={handleCartClick}
                   cartCount={cartCount}
@@ -128,7 +152,7 @@ export default function Navbar() {
       {/* Slide-out Menu Drawer */}
       <MenuDrawer
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        onClose={handleDrawerClose}
         links={navLinks}
         onOrderClick={handleOrderClick}
       />
@@ -150,4 +174,5 @@ export default function Navbar() {
     </>
   );
 }
+
 

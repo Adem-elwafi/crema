@@ -3,12 +3,13 @@ import { motion } from 'framer-motion';
 
 interface WavyNavLinkProps {
   label: string;
-  href: string;
+  href?: string;
   onClick?: () => void;
   className?: string;
   variant?: 'light' | 'dark';
   isHovered?: boolean;
   onHoverChange?: (hovered: boolean) => void;
+  interactive?: boolean;
 }
 
 export const WavyNavLink = ({
@@ -19,16 +20,19 @@ export const WavyNavLink = ({
   variant = 'light',
   isHovered: externalHovered,
   onHoverChange,
+  interactive = true,
 }: WavyNavLinkProps) => {
   const [internalHovered, setInternalHovered] = useState(false);
   const isHovered = externalHovered !== undefined ? externalHovered : internalHovered;
 
   const handleMouseEnter = () => {
+    if (!interactive) return;
     setInternalHovered(true);
     onHoverChange?.(true);
   };
 
   const handleMouseLeave = () => {
+    if (!interactive) return;
     setInternalHovered(false);
     onHoverChange?.(false);
   };
@@ -36,11 +40,13 @@ export const WavyNavLink = ({
   const letters = label.split('');
 
   const defaultColor = variant === 'light' ? '#FDF8F3' : '#2C1810';
-  const hoverColor = variant === 'light' ? '#E8C9A0' : '#A0714D';
-  const hoverGlow = variant === 'light' ? '0 0 10px rgba(232, 201, 160, 0.5)' : '0 0 8px rgba(160, 113, 77, 0.35)';
+  const hoverColor = variant === 'light' ? '#E8C9A0' : '#C8956C';
+  const hoverGlow = variant === 'light'
+    ? '0 0 10px rgba(232, 201, 160, 0.5)'
+    : '0 0 10px rgba(200, 149, 108, 0.45)';
   const underlineGradient = variant === 'light'
     ? 'bg-gradient-to-r from-accent to-gold shadow-[0_0_8px_rgba(200,149,108,0.8)]'
-    : 'bg-gradient-to-r from-brown-900 to-accent shadow-[0_0_8px_rgba(44,24,16,0.4)]';
+    : 'bg-gradient-to-r from-accent-dark via-accent to-brown-900 shadow-[0_2px_8px_rgba(44,24,16,0.35)]';
 
   return (
     <a
@@ -48,7 +54,11 @@ export const WavyNavLink = ({
       onClick={onClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`relative inline-flex items-center py-2 px-2 cursor-pointer select-none group font-body text-xs uppercase tracking-[0.22em] font-semibold transition-all duration-300 ${className}`}
+      tabIndex={interactive ? 0 : -1}
+      aria-hidden={!interactive}
+      className={`relative inline-flex items-center py-2 px-2 select-none group font-body text-xs uppercase tracking-[0.22em] font-semibold transition-all duration-300 ${
+        interactive ? 'cursor-pointer' : 'pointer-events-none'
+      } ${className}`}
     >
       <span className="relative flex items-center">
         {letters.map((char, index) => (
@@ -57,7 +67,7 @@ export const WavyNavLink = ({
             animate={
               isHovered
                 ? {
-                    y: [0, -5, 2, 0],
+                    y: [0, -6, 2, 0],
                     rotate: [0, -4, 2, 0],
                     color: hoverColor,
                     textShadow: hoverGlow,
@@ -69,11 +79,18 @@ export const WavyNavLink = ({
                     textShadow: 'none',
                   }
             }
-            transition={{
-              duration: 0.45,
-              delay: index * 0.03,
-              ease: [0.34, 1.56, 0.64, 1], // bouncy spring curve
-            }}
+            transition={
+              isHovered
+                ? {
+                    duration: 0.45,
+                    delay: index * 0.03,
+                    ease: [0.34, 1.56, 0.64, 1], // bouncy spring curve
+                  }
+                : {
+                    duration: 0.25,
+                    ease: 'easeOut',
+                  }
+            }
             className="inline-block"
           >
             {char === ' ' ? '\u00A0' : char}
@@ -91,4 +108,5 @@ export const WavyNavLink = ({
     </a>
   );
 };
+
 

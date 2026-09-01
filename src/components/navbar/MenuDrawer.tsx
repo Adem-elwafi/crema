@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, MapPin, Instagram, Sparkles, ArrowUpRight } from 'lucide-react';
+import { useLenis } from '../../context/LenisContext';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -15,6 +16,16 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   links,
   onOrderClick,
 }) => {
+  const lenis = useLenis();
+
+  // Glide to the target anchor through Lenis, then release scroll lock.
+  const handleLinkClick = (href: string) => {
+    if (lenis) {
+      lenis.start();
+      lenis.scrollTo(href, { offset: 0 });
+    }
+    onClose();
+  };
   // Lock body scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
@@ -83,7 +94,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                 <motion.a
                   key={link.label}
                   href={link.href}
-                  onClick={onClose}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLinkClick(link.href);
+                  }}
                   initial={{ opacity: 0, x: 25 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.08 * (idx + 1), duration: 0.3 }}

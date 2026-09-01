@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LenisProvider } from './context/LenisProvider'
 import Preloader from './components/Preloader'
 import Navbar from './components/Navbar'
 import HeroSlider from './components/HeroSlider'
@@ -12,17 +13,19 @@ function App() {
   const [preloaderComplete, setPreloaderComplete] = useState(false);
 
   return (
-    <div className="bg-cream text-brown-900 font-body overflow-x-hidden">
-      {!preloaderComplete && <Preloader onComplete={() => setPreloaderComplete(true)} />}
+    <LenisProvider paused={!preloaderComplete}>
+      <div className="bg-cream text-brown-900 font-body overflow-x-hidden">
+        {!preloaderComplete && <Preloader onComplete={() => setPreloaderComplete(true)} />}
 
-      <Navbar />
-      <HeroSlider isPaused={!preloaderComplete} />
-      <WhyChooseUs />
-      <MenuHighlights />
-      <VisitUs />
-      <Newsletter />
-      <Footer />
-    </div>
+        <Navbar />
+        <HeroSlider isPaused={!preloaderComplete} />
+        <WhyChooseUs />
+        <MenuHighlights />
+        <VisitUs />
+        <Newsletter />
+        <Footer />
+      </div>
+    </LenisProvider>
   )
 }
 
