@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 interface NavLogoProps {
   isScrolled: boolean;
   onClick?: () => void;
@@ -15,23 +17,34 @@ export const NavLogo = ({ isScrolled, onClick, variant = 'light' }: NavLogoProps
       aria-label="CREMA - Return to top"
     >
       {/* Outer badge wrapper: transitions background, border, padding, and backdrop-filter */}
-      <div
-        className={`flex items-center transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          isScrolled
-            ? 'px-2 py-1.5 rounded-full bg-brown-900/90 backdrop-blur-xl border border-cream/20 shadow-2xl hover:border-gold'
-            : 'p-0 bg-transparent border-transparent'
-        }`}
+      <motion.div
+        className="flex items-center transition-colors overflow-hidden"
+        animate={{
+          backgroundColor: isScrolled ? 'rgba(43, 23, 11, 0.95)' : 'rgba(0, 0, 0, 0)',
+          borderColor: isScrolled ? 'rgba(245, 235, 225, 0.15)' : 'rgba(0, 0, 0, 0)',
+          paddingLeft: isScrolled ? '8px' : '0px',
+          paddingRight: isScrolled ? '16px' : '0px',
+          paddingTop: isScrolled ? '6px' : '0px',
+          paddingBottom: isScrolled ? '6px' : '0px',
+          borderRadius: '9999px',
+          backdropFilter: isScrolled ? 'blur(16px)' : 'blur(0px)',
+          borderWidth: '1px',
+          boxShadow: isScrolled ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : 'none',
+        }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* 1. STANDALONE EMBLEM MARK (Always 100% visible, centered in badge when scrolled) */}
-        <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-          <svg
-            viewBox="0 0 40 40"
+        {/* 1. STANDALONE EMBLEM MARK (Unified 0 0 80 80 ViewBox) */}
+        <div className="relative flex items-center justify-center shrink-0">
+          <motion.svg
+            viewBox="0 0 80 80"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full pointer-events-none transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
-            style={{
-              transform: isScrolled ? 'scale(1.06)' : 'scale(1)',
+            className="pointer-events-none drop-shadow-sm group-hover:scale-105 transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            animate={{
+              width: isScrolled ? '32px' : '40px',
+              height: isScrolled ? '32px' : '40px',
             }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             aria-hidden="true"
           >
             <title>CREMA Mark</title>
@@ -46,66 +59,141 @@ export const NavLogo = ({ isScrolled, onClick, variant = 'light' }: NavLogoProps
                 <stop offset="40%" stopColor={isDark ? '#8D6E63' : '#E8C9A0'} />
                 <stop offset="100%" stopColor={isDark ? '#5D4037' : '#C49A6C'} />
               </linearGradient>
+              <linearGradient id={`cupBodyGrad-${variant}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor={isDark ? '#2C1810' : '#8D6E63'} />
+                <stop offset="100%" stopColor={isDark ? '#1A0C05' : '#4E342E'} />
+              </linearGradient>
             </defs>
 
-            {/* Outer Organic Crema Ribbon */}
-            <path
-              d="M20 4C11.163 4 4 11.163 4 20C4 28.837 11.163 36 20 36C28.837 36 36 28.837 36 20C36 15.2 33.9 10.9 30.5 8"
+            {/* Outer Organic 'C' Crescent */}
+            <motion.path
+              d="M 58,22 A 26,26 0 1,0 58,58"
+              fill="none"
               stroke={`url(#cremaGoldGrad-${variant})`}
-              strokeWidth="2.4"
               strokeLinecap="round"
-              className="drop-shadow-sm transition-all duration-300 group-hover:opacity-80"
+              animate={{
+                strokeWidth: isScrolled ? 11 : 6,
+              }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             />
 
-            {/* Inner Fluid Vortex Swirl */}
-            <path
-              d="M20 9C14.5 9 10 13.5 10 19C10 24.5 14.5 29 20 29C23.8 29 27.1 26.9 28.8 23.8C30.2 21.2 30 18.2 28.5 16C26.8 13.5 23.8 12.2 21 12.8C18.2 13.4 16 15.8 16 18.8C16 21.8 18.2 24.2 21.2 24.2C23.2 24.2 24.8 22.8 25 21"
-              stroke={`url(#cremaSwirlGrad-${variant})`}
-              strokeWidth="2.0"
-              strokeLinecap="round"
+            {/* Coffee Cup Body */}
+            <motion.path
+              d="M 22,46 C 22,66 58,66 58,46 Z"
+              fill={`url(#cupBodyGrad-${variant})`}
+              animate={{
+                scale: isScrolled ? 1.05 : 1,
+                y: isScrolled ? 2 : 0,
+              }}
+              style={{ transformOrigin: '40px 46px' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             />
 
-            {/* Central Coffee Bean S-Curve Core */}
-            <path
-              d="M17 14.5C18.5 16 21.5 16.5 22.5 18C23.5 19.5 22 21.5 20.5 22.5"
+            {/* Cup Handle */}
+            <motion.path
+              d="M 56,48 C 68,48 68,60 56,60"
+              fill="none"
               stroke={`url(#cremaGoldGrad-${variant})`}
-              strokeWidth="1.8"
               strokeLinecap="round"
+              animate={{
+                strokeWidth: isScrolled ? 5 : 4,
+                y: isScrolled ? 2 : 0,
+              }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             />
 
-            {/* Micro Roastery Spark */}
-            <circle cx="20" cy="20" r="1.5" fill={`url(#cremaSwirlGrad-${variant})`} />
-          </svg>
+            {/* Crema Liquid Surface */}
+            <motion.ellipse
+              cx="40"
+              cy="46"
+              rx="18"
+              ry="4.5"
+              fill={`url(#cremaSwirlGrad-${variant})`}
+              animate={{
+                scale: isScrolled ? 1.05 : 1,
+                y: isScrolled ? 2 : 0,
+              }}
+              style={{ transformOrigin: '40px 46px' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            />
+
+            {/* Primary Steam (Upward S-Flame) */}
+            <motion.path
+              d="M 38,42 C 30,34 48,26 40,14"
+              fill="none"
+              stroke={`url(#cremaGoldGrad-${variant})`}
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              animate={{
+                opacity: isScrolled ? 0 : 1,
+                pathLength: isScrolled ? 0 : 1,
+                y: isScrolled ? -4 : 0,
+              }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            />
+
+            {/* Secondary Steam Wisp */}
+            <motion.path
+              d="M 46,38 C 40,30 52,24 46,18"
+              fill="none"
+              stroke={`url(#cremaGoldGrad-${variant})`}
+              strokeWidth="2"
+              strokeLinecap="round"
+              animate={{
+                opacity: isScrolled ? 0 : 0.7,
+                pathLength: isScrolled ? 0 : 1,
+                y: isScrolled ? -4 : 0,
+              }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+            />
+          </motion.svg>
         </div>
 
-        {/* 2. TYPOGRAPHY (Collapses smoothly with max-width, opacity, and transform) */}
-        <div
-          data-nav-logo
-          className={`flex flex-col justify-center overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-            isScrolled
-              ? 'max-w-0 opacity-0 -translate-x-3 pointer-events-none pl-0'
-              : 'max-w-[130px] opacity-100 translate-x-0 pointer-events-auto pl-2.5'
-          }`}
+        {/* 2. TYPOGRAPHY (HTML Text morphs seamlessly via Framer Motion) */}
+        <motion.div
+          className="flex flex-col justify-center overflow-hidden pl-2.5"
+          animate={{
+            gap: isScrolled ? '0px' : '4px',
+          }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >
-          <span
-            className={`font-display font-bold text-2xl tracking-[0.16em] transition-colors duration-300 leading-none drop-shadow-sm whitespace-nowrap ${
-              isDark
+          {/* Main Logotype */}
+          <motion.span
+            className={`font-display font-bold leading-none drop-shadow-sm whitespace-nowrap ${
+              isScrolled
+                ? 'text-cream group-hover:text-gold' /* Force light text in dark pill */
+                : isDark
                 ? 'text-brown-900 group-hover:text-accent-dark'
                 : 'text-accent group-hover:text-gold'
             }`}
+            animate={{
+              fontSize: isScrolled ? '14px' : '24px',
+              letterSpacing: isScrolled ? '0.05em' : '0.16em',
+              y: isScrolled ? 1 : 0, // Optical nudge
+            }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
             CREMA
-          </span>
-          <span
-            className={`font-body text-[8.5px] uppercase tracking-[0.32em] mt-1 font-semibold whitespace-nowrap ${
+          </motion.span>
+          
+          {/* Subtitle */}
+          <motion.span
+            className={`font-body uppercase font-semibold whitespace-nowrap ${
               isDark ? 'text-brown-700/80' : 'text-cream/90'
             }`}
+            animate={{
+              height: isScrolled ? 0 : 'auto',
+              opacity: isScrolled ? 0 : 1,
+              fontSize: isScrolled ? '0px' : '8.5px',
+              letterSpacing: isScrolled ? '0em' : '0.32em',
+              marginTop: isScrolled ? '0px' : '4px',
+            }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
-            Roasters
-          </span>
-        </div>
-      </div>
+            Artisanal Roasters
+          </motion.span>
+        </motion.div>
+      </motion.div>
     </a>
   );
 };
-
