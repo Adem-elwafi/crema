@@ -37,11 +37,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
     // On page load, the FIRST thing they see is just the tiny dot resting in the center
     gsap.set('.ring-4', { scale: 0.02 }); 
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-         onComplete();
-      }
-    });
+    const tl = gsap.timeline();
 
     // 0.5s - The dot gets bigger, and the other circles come from it
     tl.to('.ring-4', { scale: 1, duration: 1.4, ease: 'expo.inOut' }, 0.5);
@@ -64,7 +60,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       ease: 'expo.out'
     }, 1.6);
 
-    // 1.5s - Photorealistic Cutouts Burst In Radially (further from the central logo for clean breathing room)
+    // 1.5s - Photorealistic Cutouts Burst In Radially
     tl.fromTo('.ing-1', { x: -30, y: -30 }, { opacity: 1, scale: 1, x: -260, y: -180, rotation: -15, duration: 1.4, ease: 'expo.out' }, 1.55);
     tl.fromTo('.ing-2', { x: 30, y: -30 }, { opacity: 1, scale: 1, x: 270, y: -170, rotation: 20, duration: 1.4, ease: 'expo.out' }, 1.6);
     tl.fromTo('.ing-3', { x: 30, y: 30 }, { opacity: 1, scale: 1, x: 250, y: 190, rotation: -12, duration: 1.4, ease: 'expo.out' }, 1.65);
@@ -95,7 +91,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       ease: 'power3.inOut'
     }, 3.8);
 
-    // FIX: Logo just smoothly fades up instead of translating into the navbar slot
+    // Logo smoothly fades up
     tl.to('.logo-text', {
       opacity: 0,
       y: -40,
@@ -104,7 +100,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       ease: 'power3.inOut'
     }, 3.8);
 
-    // Crossfade the entire background & rings to reveal the HeroSlider underneath seamlessly
+    // Crossfade the entire background & rings
     tl.to('.preloader-bg-elements', {
       opacity: 0,
       duration: 0.8,
@@ -112,10 +108,14 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
     }, 4.0);
 
     // Ensure container is hidden right as visual fade completes 
-    // to instantly unmount and release Lenis scroll locks without any lagging delay.
     tl.to(container.current, {
       opacity: 0,
-      duration: 0.1
+      duration: 0.1,
+      onComplete: () => {
+        // Explicitly fire onComplete here at exactly 4.9s
+        // instead of waiting for the floating ingredient repeat loops to finish.
+        onComplete();
+      }
     }, 4.8);
 
   }, { scope: container });
