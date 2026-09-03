@@ -16,7 +16,7 @@ export const MasterNavOverlay = ({
   onOpenDrawer,
 }: MasterNavOverlayProps) => {
   return (
-    <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between relative pointer-events-auto select-none">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between relative pointer-events-auto select-none">
       {/* LEFT: Logo Hit Target */}
       <a
         href="#hero"
@@ -42,7 +42,7 @@ export const MasterNavOverlay = ({
       {/* RIGHT: Action Hit Targets */}
       <div className="flex items-center z-20">
         {/* Desktop Buttons */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <button
             onClick={onCartClick}
             onMouseEnter={() => onHoverButton('cart')}
@@ -61,8 +61,8 @@ export const MasterNavOverlay = ({
           </button>
         </div>
 
-        {/* Mobile Buttons */}
-        <div className="md:hidden flex items-center gap-2.5">
+        {/* Mobile Buttons (visible below lg breakpoint) */}
+        <div className="lg:hidden flex items-center gap-2.5">
           <button
             onClick={onCartClick}
             aria-label="View Cart"

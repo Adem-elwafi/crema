@@ -31,7 +31,7 @@ export const SplitNavLayer = ({
   const isOrderHovered = hoveredButton === 'order';
 
   return (
-    <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between relative pointer-events-none select-none">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between relative pointer-events-none select-none">
       {/* LEFT: Dynamic Logo */}
       <div className="flex items-center z-10">
         <NavLogo isScrolled={false} variant={variant} />
@@ -55,7 +55,7 @@ export const SplitNavLayer = ({
       {/* RIGHT: Action CTAs */}
       <div className="flex items-center z-10">
         {/* Desktop CTAs */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <button
             onClick={onCartClick}
             tabIndex={isVisualOnly ? -1 : 0}
@@ -105,8 +105,8 @@ export const SplitNavLayer = ({
           </button>
         </div>
 
-        {/* Mobile-only Actions */}
-        <div className="md:hidden flex items-center gap-2.5">
+        {/* Mobile-only Actions (visible below lg breakpoint) */}
+        <div className="lg:hidden flex items-center gap-2.5">
           <button
             onClick={onCartClick}
             tabIndex={isVisualOnly ? -1 : 0}

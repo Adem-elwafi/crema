@@ -1,9 +1,7 @@
 import {
   AnimatePresence,
-  motion,
-  animate
+  motion
 } from 'framer-motion';
-import { useEffect, useRef } from 'react';
 import type { SlideData } from '../../data/slides';
 import FloatingIngredients from './FloatingIngredients';
 
@@ -15,38 +13,13 @@ interface CenterPieceProps {
 }
 
 export default function CenterPiece({ slide, direction, onAnimationComplete }: CenterPieceProps) {
-  const cupFloatRef = useRef<HTMLDivElement>(null);
-
-  // Continuous subtle floating & slight rotation drift applied to the cup only,
-  // so no transform ancestor isolates the ingredients' multiply blend.
-  useEffect(() => {
-    if (!cupFloatRef.current) return;
-
-    const el = cupFloatRef.current;
-    const float = animate(
-      { y: 0, rotate: 0 },
-      { y: 12, rotate: 2 },
-      {
-        duration: 3.2,
-        repeat: Infinity,
-        repeatType: 'mirror',
-        ease: 'easeInOut',
-        onUpdate: (latest) => {
-          el.style.transform = `translateY(${latest.y}px) rotate(${latest.rotate}deg)`;
-        }
-      }
-    );
-
-    return () => float.stop();
-  }, [slide.id]);
-
   const handleExitComplete = () => {
     onAnimationComplete(slide.id);
   };
 
   return (
     <div
-      className="absolute right-[4%] md:right-[6%] lg:right-[10%] top-[calc(50%-160px)] sm:top-[calc(50%-210px)] md:top-[calc(50%-240px)] lg:top-[calc(50%-280px)] w-80 sm:w-[420px] md:w-[480px] lg:w-[560px] aspect-square pointer-events-none flex items-center justify-center"
+      className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 min-[955px]:w-[420px] min-[955px]:h-[420px] lg:w-[500px] lg:h-[500px] pointer-events-none flex items-center justify-center"
     >
       {/* Ambient warm radial glow */}
       <motion.div
@@ -56,7 +29,7 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
       />
 
       <div className="w-full h-full relative">
-        {/* Floating ingredients anchored to the cup center, moving with it */}
+        {/* Floating ingredients anchored to the cup center */}
         <FloatingIngredients
           ingredients={slide.ingredients}
           slideId={slide.id}
@@ -77,7 +50,7 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
             className="absolute inset-0 z-[1] flex items-center justify-center"
             style={{ willChange: 'transform, opacity' }}
           >
-            <div ref={cupFloatRef} className="w-full h-full flex items-center justify-center" style={{ willChange: 'transform' }}>
+            <div className="w-full h-full flex items-center justify-center">
               <img
                 src={slide.image}
                 alt={slide.title}

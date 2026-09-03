@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { useLenis } from '../context/LenisContext';
 import { NavLogo } from './navbar/NavLogo';
@@ -7,6 +7,8 @@ import { MenuDrawer } from './navbar/MenuDrawer';
 import { SplitNavLayer } from './navbar/SplitNavLayer';
 import { MasterNavOverlay } from './navbar/MasterNavOverlay';
 
+const LG_BREAKPOINT = 1024;
+
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -14,7 +16,18 @@ export default function Navbar() {
   const [orderToast, setOrderToast] = useState<string | null>(null);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+  const [isBelowLg, setIsBelowLg] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < LG_BREAKPOINT : false
+  );
   const lenis = useLenis();
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${LG_BREAKPOINT - 1}px)`);
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsBelowLg(e.matches);
+    handler(mql);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   const handleDrawerOpen = useCallback(() => {
     setIsDrawerOpen(true);
@@ -59,60 +72,105 @@ export default function Navbar() {
 
   return (
     <>
-      {/* 1. UNSCROLLED STATE: Dual-Layer Split-Clip Navbar (Clean, airy, perfectly mapped to Hero diagonal) */}
+      {/* 1. UNSCROLLED STATE */}
       <AnimatePresence>
         {!isScrolled && (
           <motion.div
-            key="unscrolled-split-nav"
+            key="unscrolled-nav"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -40 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-x-0 top-0 h-screen pointer-events-none z-50 overflow-hidden"
           >
-            {/* LAYER 1: Dark Brown Region (Left: polygon 0 0, 55% 0, 40% 100%, 0 100%) - VISUAL */}
-            <div
-              className="absolute inset-0 pointer-events-none pt-6 select-none"
-              style={{ clipPath: 'polygon(0 0, 55% 0, 40% 100%, 0 100%)' }}
-              aria-hidden="true"
-            >
-              <SplitNavLayer
-                variant="light"
-                navLinks={navLinks}
-                hoveredIndex={hoveredNavIndex}
-                hoveredButton={hoveredButton}
-                cartCount={cartCount}
-                isVisualOnly={true}
-              />
-            </div>
+            {!isBelowLg ? (
+              /* DESKTOP (≥ lg): Dual-Layer Split-Clip — polygon diagonal mapped to hero */
+              <>
+                {/* LAYER 1: Dark Brown Region */}
+                <div
+                  className="absolute inset-0 pointer-events-none pt-6 select-none"
+                  style={{ clipPath: 'polygon(0 0, 55% 0, 40% 100%, 0 100%)' }}
+                  aria-hidden="true"
+                >
+                  <SplitNavLayer
+                    variant="light"
+                    navLinks={navLinks}
+                    hoveredIndex={hoveredNavIndex}
+                    hoveredButton={hoveredButton}
+                    cartCount={cartCount}
+                    isVisualOnly={true}
+                  />
+                </div>
 
-            {/* LAYER 2: Light Cream Region (Right: polygon 55% 0, 100% 0, 100% 100%, 40% 100%) - VISUAL */}
-            <div
-              className="absolute inset-0 pointer-events-none pt-6 select-none"
-              style={{ clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 40% 100%)' }}
-              aria-hidden="true"
-            >
-              <SplitNavLayer
-                variant="dark"
-                navLinks={navLinks}
-                hoveredIndex={hoveredNavIndex}
-                hoveredButton={hoveredButton}
-                cartCount={cartCount}
-                isVisualOnly={true}
-              />
-            </div>
+                {/* LAYER 2: Light Cream Region */}
+                <div
+                  className="absolute inset-0 pointer-events-none pt-6 select-none"
+                  style={{ clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 40% 100%)' }}
+                  aria-hidden="true"
+                >
+                  <SplitNavLayer
+                    variant="dark"
+                    navLinks={navLinks}
+                    hoveredIndex={hoveredNavIndex}
+                    hoveredButton={hoveredButton}
+                    cartCount={cartCount}
+                    isVisualOnly={true}
+                  />
+                </div>
 
-            {/* MASTER INTERACTIVE HIT-TEST OVERLAY (Unified hit-testing across both split regions) */}
-            <div className="absolute inset-x-0 top-0 pt-6 pointer-events-auto">
-              <MasterNavOverlay
-                navLinks={navLinks}
-                onHoverNavIndex={setHoveredNavIndex}
-                onHoverButton={setHoveredButton}
-                onCartClick={handleCartClick}
-                onOrderClick={handleOrderClick}
-                onOpenDrawer={handleDrawerOpen}
-              />
-            </div>
+                {/* MASTER INTERACTIVE OVERLAY */}
+                <div className="absolute inset-x-0 top-0 pt-6 pointer-events-auto">
+                  <MasterNavOverlay
+                    navLinks={navLinks}
+                    onHoverNavIndex={setHoveredNavIndex}
+                    onHoverButton={setHoveredButton}
+                    onCartClick={handleCartClick}
+                    onOrderClick={handleOrderClick}
+                    onOpenDrawer={handleDrawerOpen}
+                  />
+                </div>
+              </>
+            ) : (
+              /* MOBILE / TABLET (< lg): Solid dark bar — no split-clip, guaranteed contrast */
+              <>
+                <div
+                  className="absolute inset-x-0 top-0 h-12 pointer-events-none select-none bg-brown-900/90 backdrop-blur-md"
+                  aria-hidden="true"
+                >
+                  <SplitNavLayer
+                    variant="light"
+                    navLinks={navLinks}
+                    hoveredIndex={hoveredNavIndex}
+                    hoveredButton={hoveredButton}
+                    cartCount={cartCount}
+                    isVisualOnly={true}
+                  />
+                </div>
+
+                {/* Interactive hit-test overlay — matches SplitNavLayer layout exactly */}
+                <div className="absolute inset-x-0 top-0 pt-0 pointer-events-auto">
+                  <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between relative pointer-events-auto select-none">
+                    <a
+                      href="#hero"
+                      aria-label="CREMA - Return to top"
+                      className="w-[140px] h-10 opacity-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
+                    />
+                    <div className="flex items-center z-20 gap-2.5">
+                      <button
+                        onClick={handleCartClick}
+                        aria-label="View Cart"
+                        className="w-9 h-9 rounded-full opacity-0 cursor-pointer"
+                      />
+                      <button
+                        onClick={handleDrawerOpen}
+                        aria-label="Open mobile navigation"
+                        className="w-9 h-9 rounded-full opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -128,7 +186,7 @@ export default function Navbar() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="fixed top-0 left-0 w-full z-50 pointer-events-none pt-4"
           >
-            <div className="max-w-6xl mx-auto px-6 h-12 flex items-center justify-between">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
               {/* Left: Standalone Emblem Badge */}
               <div className="pointer-events-auto flex items-center z-10">
                 <NavLogo isScrolled={true} />

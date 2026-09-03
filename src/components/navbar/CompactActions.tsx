@@ -24,10 +24,10 @@ export const CompactActions = ({
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className="flex items-center gap-2 p-1.5 rounded-full bg-brown-900/90 backdrop-blur-xl border border-cream/20 shadow-2xl"
     >
-      {/* Primary CTA: Order Now Button */}
+      {/* Primary CTA: Order Now Button — hidden on very small screens to prevent right-edge clip */}
       <button
         onClick={onOrderClick}
-        className="relative group overflow-hidden px-5 py-2 rounded-full bg-accent text-brown-900 font-body text-xs uppercase tracking-[0.2em] font-bold shadow-md hover:bg-gold hover:shadow-accent/40 transition-all duration-300 active:scale-95 cursor-pointer"
+        className="relative group overflow-hidden px-5 py-2 rounded-full bg-accent text-brown-900 font-body text-xs uppercase tracking-[0.2em] font-bold shadow-md hover:bg-gold hover:shadow-accent/40 transition-all duration-300 active:scale-95 cursor-pointer hidden sm:inline-flex"
       >
         <span className="relative z-10">ORDER NOW</span>
         <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />

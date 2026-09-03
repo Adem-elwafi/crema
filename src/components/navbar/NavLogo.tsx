@@ -115,9 +115,9 @@ export const NavLogo = ({ isScrolled, onClick, variant = 'light' }: NavLogoProps
             CREMA
           </motion.span>
           
-          {/* Subtitle */}
+          {/* Subtitle — hidden on mobile to prevent overflow */}
           <motion.span
-            className={`font-body uppercase font-semibold whitespace-nowrap overflow-hidden ${
+            className={`font-body uppercase font-semibold whitespace-nowrap overflow-hidden hidden md:block ${
               isDark ? 'text-brown-600' : 'text-cream/80'
             }`}
             initial={false}

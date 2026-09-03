@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, type Variants } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import type { SlideData } from '../../data/slides';
 
@@ -7,107 +7,154 @@ interface SlideContentProps {
   slideIndex: number;
   totalSlides: number;
   direction: number;
+  isAnimating?: boolean;
   onAnimationComplete?: (id: number) => void;
 }
 
-const EASE = [0.65, 0, 0.35, 1] as const;
+const transitionEase = [0.16, 1, 0.3, 1] as const;
 
-const innerVariants = (direction: number): Variants => ({
-  enter: {
-    y: direction * 35,
-    opacity: 0
-  },
-  center: {
-    y: 0,
-    opacity: 1,
-    transition: { duration: 0.65, ease: EASE }
-  },
-  exit: {
-    y: direction * -30,
-    opacity: 0,
-    transition: { duration: 0.45, ease: EASE }
-  }
-});
-
-export default function SlideContent({ slide, slideIndex, totalSlides, direction, onAnimationComplete }: SlideContentProps) {
-  const titleWords = slide.title.split(' ');
-
+export default function SlideContent({
+  slide,
+  slideIndex,
+  totalSlides,
+  direction,
+  isAnimating = false,
+  onAnimationComplete,
+}: SlideContentProps) {
   const handleComplete = () => onAnimationComplete?.(slide.id);
 
   return (
-    <div className="absolute left-8 md:left-24 top-1/2 -translate-y-1/2 z-30 max-w-lg w-full px-4 md:px-0 pointer-events-none">
-      <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-        <motion.div
-          key={slide.id}
-          custom={direction}
-          className="w-full pointer-events-auto"
-          variants={{
-            enter: {},
-            center: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } },
-            exit: {}
-          }}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          onAnimationComplete={handleComplete}
-        >
-          <motion.div custom={direction} variants={innerVariants(direction)} className="flex items-center space-x-4 mb-6" style={{ willChange: 'transform, opacity' }}>
-            <div className="text-4xl font-display font-bold text-[#E8C9A0]">
+    <div className="relative z-30 w-full max-w-lg select-none">
+      {/* 1. SLOTTED COUNTER: Fixed width slot + tabular-nums prevents horizontal shifting */}
+      <div className="flex items-center space-x-4 mb-4 sm:mb-6">
+        {/* Fixed Width Rolling Slide Number Slot */}
+        <div className="relative overflow-hidden h-9 sm:h-12 flex items-center w-12 sm:w-16 shrink-0 tabular-nums">
+          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+            <motion.div
+              key={slideIndex}
+              custom={direction}
+              initial={{ y: direction * 28, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: direction * -28, opacity: 0 }}
+              transition={{ duration: 0.4, ease: transitionEase }}
+              className="font-display font-bold text-[#E8C9A0] w-full text-left"
+              style={{ fontSize: 'clamp(1.8rem, 1.4rem + 1vw, 2.75rem)' }}
+            >
               {String(slideIndex + 1).padStart(2, '0')}
-            </div>
-            <div className="h-[1px] w-12 bg-[#E8C9A0]/70" />
-            <div className="text-xl font-display text-[#C8956C]">
-              {String(totalSlides).padStart(2, '0')}
-            </div>
-          </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
+        {/* Permanent dividing line: Never unmounts, never shakes */}
+        <div className="h-[1px] w-10 sm:w-12 bg-[#E8C9A0]/70 shrink-0" />
+
+        {/* Permanent total slides count: Fixed width + tabular-nums */}
+        <div
+          className="font-display text-[#C8956C] shrink-0 tabular-nums w-8 text-left"
+          style={{ fontSize: 'clamp(1rem, 0.875rem + 0.25vw, 1.25rem)' }}
+        >
+          {String(totalSlides).padStart(2, '0')}
+        </div>
+      </div>
+
+      {/* 2. SLOTTED SUBTITLE: Bounded in-place text replacement */}
+      <div className="relative overflow-hidden h-6 mb-3 sm:mb-4">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
+            key={slide.id}
             custom={direction}
-            variants={innerVariants(direction)}
-            className="text-sm font-bold tracking-[0.2em] text-[#C8956C] uppercase mb-4"
-            style={{ willChange: 'transform, opacity' }}
+            initial={{ y: direction * 16, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: direction * -16, opacity: 0 }}
+            transition={{ duration: 0.35, ease: transitionEase }}
+            className="font-bold tracking-[0.2em] text-[#C8956C] uppercase text-xs sm:text-sm"
           >
             {slide.subtitle}
           </motion.div>
+        </AnimatePresence>
+      </div>
 
+      {/* 3. SLOTTED TITLE: Locked fixed-height box prevents height expansion on multi-line titles like 'Slow-Drip Cold Brew' */}
+      <div className="relative w-full h-24 sm:h-28 lg:h-32 mb-4 sm:mb-6 overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.h1
+            key={slide.id}
             custom={direction}
-            variants={innerVariants(direction)}
-            className="text-5xl md:text-7xl font-display font-bold text-cream mb-6 leading-tight"
-            style={{ willChange: 'transform, opacity', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}
+            initial={{ opacity: 0, y: direction * 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: direction * -24 }}
+            transition={{ duration: 0.4, ease: transitionEase }}
+            onAnimationComplete={handleComplete}
+            className="absolute inset-0 flex items-center font-display font-bold text-cream"
+            style={{
+              fontSize: 'clamp(1.85rem, 1.3rem + 1.6vw, 3.25rem)',
+              lineHeight: 1.12,
+              textShadow: '0 2px 12px rgba(0,0,0,0.35)',
+            }}
           >
-            {titleWords.map((word, i) => (
-              <span key={i} className="inline-block overflow-hidden mr-3 pb-2">
-                <span className="inline-block">{word}</span>
-              </span>
-            ))}
+            {slide.title}
           </motion.h1>
+        </AnimatePresence>
+      </div>
 
+      {/* 4. SLOTTED DESCRIPTION: Locked fixed-height box eliminates collapse and vertical shift */}
+      <div className="relative w-full max-w-md h-16 sm:h-20 mb-6 sm:mb-8 overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.p
+            key={slide.id}
             custom={direction}
-            variants={innerVariants(direction)}
-            className="text-lg text-[#E8D8C8]/90 mb-8 max-w-md font-body leading-relaxed"
-            style={{ willChange: 'transform, opacity', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}
+            initial={{ opacity: 0, y: direction * 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: direction * -14 }}
+            transition={{ duration: 0.35, ease: transitionEase }}
+            className="absolute inset-0 flex items-start text-[#E8D8C8]/90 font-body leading-relaxed text-sm sm:text-base"
+            style={{ textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}
           >
             {slide.description}
           </motion.p>
+        </AnimatePresence>
+      </div>
 
-          <motion.div
-            custom={direction}
-            variants={innerVariants(direction)}
-            className="flex items-center space-x-8"
-            style={{ willChange: 'transform, opacity' }}
-          >
-            <span className="text-4xl font-bold font-display text-[#E8C9A0]">
+      {/* 5. PRICE & ORDER BUTTON: Rolling price digit + Shrink-to-disappear CTA button */}
+      <div className="flex items-center space-x-6 sm:space-x-8">
+        {/* Fixed Width Rolling price slot prevents shifting the CTA button */}
+        <div className="relative overflow-hidden h-9 sm:h-11 flex items-center w-24 sm:w-28 shrink-0 tabular-nums">
+          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+            <motion.span
+              key={slide.id}
+              custom={direction}
+              initial={{ y: direction * 22, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: direction * -22, opacity: 0 }}
+              transition={{ duration: 0.4, ease: transitionEase }}
+              className="font-bold font-display text-[#E8C9A0] text-2xl sm:text-3xl lg:text-4xl w-full text-left"
+            >
               {slide.price}
-            </span>
-            <button className="flex items-center justify-center space-x-2 bg-[#C8956C]/90 backdrop-blur-sm border border-[#E8C9A0]/40 hover:bg-[#E8C9A0] hover:text-brown-900 px-8 py-4 rounded-full transition-all duration-500 transform hover:scale-105 shadow-lg hover:shadow-[#E8C9A0]/20">
-              <span className="font-semibold tracking-[0.18em] uppercase text-sm">Order Now</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+            </motion.span>
+          </AnimatePresence>
+        </div>
+
+        {/* CTA Button: Shrinks until disappearing during swipe, pops back in when settled */}
+        <motion.button
+          initial={false}
+          animate={{
+            scale: isAnimating ? 0 : 1,
+            opacity: isAnimating ? 0 : 1,
+            pointerEvents: isAnimating ? 'none' : 'auto',
+          }}
+          transition={{
+            type: 'spring',
+            damping: 22,
+            stiffness: 280,
+            delay: isAnimating ? 0 : 0.05,
+          }}
+          disabled={isAnimating}
+          className="flex items-center justify-center space-x-2 bg-[#C8956C]/90 backdrop-blur-sm border border-[#E8C9A0]/40 hover:bg-[#E8C9A0] hover:text-brown-900 px-6 sm:px-8 py-3 sm:py-3.5 rounded-full transition-colors duration-300 shadow-lg hover:shadow-[#E8C9A0]/20 cursor-pointer"
+        >
+          <span className="font-semibold tracking-[0.18em] uppercase text-xs sm:text-sm">Order Now</span>
+          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+        </motion.button>
+      </div>
     </div>
   );
 }
