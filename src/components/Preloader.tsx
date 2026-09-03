@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -10,21 +10,6 @@ import splashImg from '../assets/images/hero/cream-splash.png';
 
 export default function Preloader({ onComplete }: { onComplete: () => void }) {
   const container = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Lock scroll natively
-    document.body.style.overflow = 'hidden';
-    
-    // Also explicitly target html for mobile browsers
-    document.documentElement.style.overflow = 'hidden';
-    
-    return () => {
-      // Unlock scroll immediately when preloader unmounts
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, []);
-
   useGSAP(() => {
     // Initial hidden states for logo and ingredients
     gsap.set('.logo-text', { opacity: 0, scale: 0.8 });
