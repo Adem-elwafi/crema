@@ -12,9 +12,16 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Lock scroll natively
     document.body.style.overflow = 'hidden';
+    
+    // Also explicitly target html for mobile browsers
+    document.documentElement.style.overflow = 'hidden';
+    
     return () => {
+      // Unlock scroll immediately when preloader unmounts
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, []);
 
@@ -75,65 +82,41 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
     }, 2.0);
 
     // 4.0s - Exit Choreo & Layout Transition
-    tl.to('.ing-1', { x: -500, y: -450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
-    tl.to('.ing-2', { x: 500, y: -450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
-    tl.to('.ing-3', { x: 500, y: 450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
-    tl.to('.ing-4', { x: -500, y: 450, opacity: 0, scale: 0.4, duration: 1.0, ease: 'power3.inOut' }, 4.0);
+    tl.to('.ing-1', { x: -500, y: -450, opacity: 0, scale: 0.4, duration: 0.8, ease: 'power3.inOut' }, 3.8);
+    tl.to('.ing-2', { x: 500, y: -450, opacity: 0, scale: 0.4, duration: 0.8, ease: 'power3.inOut' }, 3.8);
+    tl.to('.ing-3', { x: 500, y: 450, opacity: 0, scale: 0.4, duration: 0.8, ease: 'power3.inOut' }, 3.8);
+    tl.to('.ing-4', { x: -500, y: 450, opacity: 0, scale: 0.4, duration: 0.8, ease: 'power3.inOut' }, 3.8);
 
-    // Subtext fades out instantly
+    // Subtext fades out
     tl.to('.logo-subtext', {
       opacity: 0,
-      y: -10,
-      duration: 0.5,
+      y: -15,
+      duration: 0.6,
       ease: 'power3.inOut'
-    }, 4.0);
+    }, 3.8);
 
-    // Logo translates continuously across the screen to target navbar logo slot
+    // FIX: Logo just smoothly fades up instead of translating into the navbar slot
     tl.to('.logo-text', {
-      x: () => {
-        const navTarget = document.querySelector('[data-nav-logo]') || document.querySelector('.font-display');
-        const pRect = document.querySelector('.logo-text')?.getBoundingClientRect();
-        if (navTarget && pRect) {
-          const navRect = navTarget.getBoundingClientRect();
-          return (navRect.left + navRect.width / 2) - (pRect.left + pRect.width / 2);
-        }
-        return -(window.innerWidth / 2) + 80;
-      },
-      y: () => {
-        const navTarget = document.querySelector('[data-nav-logo]') || document.querySelector('.font-display');
-        const pRect = document.querySelector('.logo-text')?.getBoundingClientRect();
-        if (navTarget && pRect) {
-          const navRect = navTarget.getBoundingClientRect();
-          return (navRect.top + navRect.height / 2) - (pRect.top + pRect.height / 2);
-        }
-        return -(window.innerHeight / 2) + 40;
-      },
-      scale: () => {
-        const navTarget = document.querySelector('[data-nav-logo]') || document.querySelector('.font-display');
-        const pRect = document.querySelector('.logo-text')?.getBoundingClientRect();
-        if (navTarget && pRect) {
-          const navRect = navTarget.getBoundingClientRect();
-          return navRect.width / pRect.width;
-        }
-        return 0.2;
-      },
-      color: '#C8956C', // Transition to text-accent
-      duration: 1.2,
-      ease: 'expo.inOut'
-    }, 4.0);
+      opacity: 0,
+      y: -40,
+      scale: 0.95,
+      duration: 0.8,
+      ease: 'power3.inOut'
+    }, 3.8);
 
-    // 4.0s - Crossfade the background & rings to reveal the HeroSlider underneath seamlessly
+    // Crossfade the entire background & rings to reveal the HeroSlider underneath seamlessly
     tl.to('.preloader-bg-elements', {
       opacity: 0,
-      duration: 1.0,
+      duration: 0.8,
       ease: 'power2.inOut'
     }, 4.0);
 
-    // 5.2s - Container finally unmounts after the logo translation is fully complete
+    // Ensure container is hidden right as visual fade completes 
+    // to instantly unmount and release Lenis scroll locks without any lagging delay.
     tl.to(container.current, {
       opacity: 0,
       duration: 0.1
-    }, 5.2);
+    }, 4.8);
 
   }, { scope: container });
 
