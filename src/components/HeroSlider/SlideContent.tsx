@@ -28,8 +28,8 @@ export default function SlideContent({
       {/* 1. SLOTTED COUNTER: Fixed width slot + tabular-nums prevents horizontal shifting */}
       <div className="flex items-center space-x-4 mb-4 sm:mb-6">
         {/* Fixed Width Rolling Slide Number Slot */}
-        <div className="relative overflow-hidden h-9 sm:h-12 flex items-center w-12 sm:w-16 shrink-0 tabular-nums">
-          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <div className="relative overflow-hidden h-9 sm:h-12 w-12 sm:w-16 shrink-0 tabular-nums">
+          <AnimatePresence custom={direction} initial={false}>
             <motion.div
               key={slideIndex}
               custom={direction}
@@ -37,7 +37,7 @@ export default function SlideContent({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: direction * -28, opacity: 0 }}
               transition={{ duration: 0.4, ease: transitionEase }}
-              className="font-display font-bold text-[#E8C9A0] w-full text-left"
+              className="absolute inset-0 flex items-center font-display font-bold text-[#E8C9A0] w-full text-left"
               style={{ fontSize: 'clamp(1.8rem, 1.4rem + 1vw, 2.75rem)' }}
             >
               {String(slideIndex + 1).padStart(2, '0')}
@@ -59,7 +59,7 @@ export default function SlideContent({
 
       {/* 2. SLOTTED SUBTITLE: Bounded in-place text replacement */}
       <div className="relative overflow-hidden h-6 mb-3 sm:mb-4">
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <AnimatePresence custom={direction} initial={false}>
           <motion.div
             key={slide.id}
             custom={direction}
@@ -67,7 +67,7 @@ export default function SlideContent({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: direction * -16, opacity: 0 }}
             transition={{ duration: 0.35, ease: transitionEase }}
-            className="font-bold tracking-[0.2em] text-[#C8956C] uppercase text-xs sm:text-sm"
+            className="absolute inset-0 flex items-center font-bold tracking-[0.2em] text-[#C8956C] uppercase text-xs sm:text-sm"
           >
             {slide.subtitle}
           </motion.div>
@@ -76,7 +76,7 @@ export default function SlideContent({
 
       {/* 3. SLOTTED TITLE: Locked fixed-height box prevents height expansion on multi-line titles like 'Slow-Drip Cold Brew' */}
       <div className="relative w-full h-24 sm:h-28 lg:h-32 mb-4 sm:mb-6 overflow-hidden">
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <AnimatePresence custom={direction} initial={false}>
           <motion.h1
             key={slide.id}
             custom={direction}
@@ -99,7 +99,7 @@ export default function SlideContent({
 
       {/* 4. SLOTTED DESCRIPTION: Locked fixed-height box eliminates collapse and vertical shift */}
       <div className="relative w-full max-w-md h-16 sm:h-20 mb-6 sm:mb-8 overflow-hidden">
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <AnimatePresence custom={direction} initial={false}>
           <motion.p
             key={slide.id}
             custom={direction}
@@ -118,8 +118,8 @@ export default function SlideContent({
       {/* 5. PRICE & ORDER BUTTON: Rolling price digit + Shrink-to-disappear CTA button */}
       <div className="flex items-center space-x-6 sm:space-x-8">
         {/* Fixed Width Rolling price slot prevents shifting the CTA button */}
-        <div className="relative overflow-hidden h-9 sm:h-11 flex items-center w-24 sm:w-28 shrink-0 tabular-nums">
-          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <div className="relative overflow-hidden h-9 sm:h-11 w-24 sm:w-28 shrink-0 tabular-nums">
+          <AnimatePresence custom={direction} initial={false}>
             <motion.span
               key={slide.id}
               custom={direction}
@@ -127,7 +127,7 @@ export default function SlideContent({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: direction * -22, opacity: 0 }}
               transition={{ duration: 0.4, ease: transitionEase }}
-              className="font-bold font-display text-[#E8C9A0] text-2xl sm:text-3xl lg:text-4xl w-full text-left"
+              className="absolute inset-0 flex items-center font-bold font-display text-[#E8C9A0] text-2xl sm:text-3xl lg:text-4xl w-full text-left"
             >
               {slide.price}
             </motion.span>

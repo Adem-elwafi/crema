@@ -21,12 +21,23 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
     <div
       className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 min-[955px]:w-[420px] min-[955px]:h-[420px] lg:w-[500px] lg:h-[500px] pointer-events-none flex items-center justify-center"
     >
-      {/* Ambient warm radial glow */}
-      <motion.div
-        className="absolute w-4/5 h-4/5 rounded-full blur-3xl opacity-35 pointer-events-none"
-        animate={{ backgroundColor: slide.liquidColor || '#C8956C' }}
-        transition={{ duration: 0.7 }}
-      />
+      {/* Ambient warm radial glow: True Gaussian blur-3xl cross-faded strictly via GPU opacity */}
+      <div className="absolute w-4/5 h-4/5 pointer-events-none">
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={slide.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.35 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: 'easeInOut' }}
+            className="absolute inset-0 rounded-full blur-3xl"
+            style={{
+              backgroundColor: slide.liquidColor || '#C8956C',
+              willChange: 'opacity',
+            }}
+          />
+        </AnimatePresence>
+      </div>
 
       <div className="w-full h-full relative">
         {/* Floating ingredients anchored to the cup center */}
@@ -37,7 +48,6 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
         />
 
         <AnimatePresence
-          mode="popLayout"
           initial={false}
           onExitComplete={handleExitComplete}
         >
@@ -50,11 +60,17 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
             className="absolute inset-0 z-[1] flex items-center justify-center"
             style={{ willChange: 'transform, opacity' }}
           >
-            <div className="w-full h-full flex items-center justify-center">
+            {/* Dedicated ground shadow moving, scaling, and tilting with the cup without per-frame SVG filter recalculations */}
+            <div
+              className="absolute bottom-8 w-4/5 h-16 rounded-[50%] bg-[#2C1810]/40 blur-2xl pointer-events-none"
+              style={{ willChange: 'transform' }}
+            />
+
+            <div className="w-full h-full flex items-center justify-center relative z-10">
               <img
                 src={slide.image}
                 alt={slide.title}
-                className="w-full h-full object-contain drop-shadow-[0_30px_50px_rgba(44,24,16,0.4)] select-none filter contrast-105"
+                className="w-full h-full object-contain select-none filter contrast-105"
                 draggable={false}
               />
             </div>

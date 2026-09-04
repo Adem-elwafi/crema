@@ -44,7 +44,6 @@ export default function FloatingIngredients({ ingredients, slideId, direction }:
           const hiddenMobile = layer === 'background' ? 'hidden sm:block' : 'block';
           // Continuous smooth rotation for leaves and floating elements
           const clockwise = ingredient.position.x >= 50;
-          const spinDelta = clockwise ? 360 : -360;
 
           return (
             <div
@@ -73,14 +72,13 @@ export default function FloatingIngredients({ ingredients, slideId, direction }:
                 }}
                 style={{ willChange: 'transform, opacity' }}
               >
-                <motion.div
-                  animate={{ rotate: [ingredient.rotation, ingredient.rotation + spinDelta] }}
-                  transition={{
-                    duration: cfg.spinDuration,
-                    repeat: Infinity,
-                    ease: 'linear',
+                <div
+                  className="w-full h-full"
+                  style={{
+                    filter: cfg.blur,
+                    animation: `${clockwise ? 'spin-cw' : 'spin-ccw'} ${cfg.spinDuration}s linear infinite`,
+                    ['--start-rot' as string]: `${ingredient.rotation}deg`,
                   }}
-                  style={{ filter: cfg.blur, willChange: 'transform' }}
                 >
                   <img
                     src={ingredient.image}
@@ -88,7 +86,7 @@ export default function FloatingIngredients({ ingredients, slideId, direction }:
                     className="w-full h-full object-contain select-none"
                     draggable={false}
                   />
-                </motion.div>
+                </div>
               </motion.div>
             </div>
           );

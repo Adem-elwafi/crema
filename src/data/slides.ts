@@ -1,16 +1,16 @@
-// Hero centerpiece transparent cutouts
-import espressoImg from '../assets/images/hero/espresso-cup.png';
-import cappuccinoImg from '../assets/images/hero/cappuccino-cup.png';
-import latteImg from '../assets/images/hero/latte-cup.png';
-import coldbrewImg from '../assets/images/hero/coldbrew-glass.png';
+// Hero centerpiece transparent cutouts (optimized WebP)
+import espressoImg from '../assets/images/hero/espresso-cup.webp';
+import cappuccinoImg from '../assets/images/hero/cappuccino-cup.webp';
+import latteImg from '../assets/images/hero/latte-cup.webp';
+import coldbrewImg from '../assets/images/hero/coldbrew-glass.webp';
 
-// Floating ingredient cutouts (transparent PNGs extracted from Magnific PSD exports)
-import beansGroupImg from '../assets/images/hero/flying-coffee-beans.png';
-import beanSingleImg from '../assets/images/hero/single-coffee-bean.png';
-import sugarImg from '../assets/images/hero/sugar-cubes.png';
-import cinnamonImg from '../assets/images/hero/cinnamon-sticks.png';
-import splashImg from '../assets/images/hero/cream-splash.png';
-import mintLeafImg from '../assets/images/hero/mint-leaf.png';
+// Floating ingredient cutouts (optimized WebP)
+import beansGroupImg from '../assets/images/hero/flying-coffee-beans.webp';
+import beanSingleImg from '../assets/images/hero/single-coffee-bean.webp';
+import sugarImg from '../assets/images/hero/sugar-cubes.webp';
+import cinnamonImg from '../assets/images/hero/cinnamon-sticks.webp';
+import splashImg from '../assets/images/hero/cream-splash.webp';
+import mintLeafImg from '../assets/images/hero/mint-leaf.webp';
 
 export interface IngredientData {
   id: string;

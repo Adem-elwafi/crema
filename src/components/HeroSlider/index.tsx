@@ -3,9 +3,30 @@ import { useSliderEngine } from './useSliderEngine';
 import CenterPiece from './CenterPiece';
 import SlideContent from './SlideContent';
 import SlideControls from './SlideControls';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 export default function HeroSlider({ isPaused = false }: { isPaused?: boolean }) {
+  // Eagerly pre-decode all slide cups and ingredients into GPU VRAM
+  // so transitions never suffer from synchronous raster thread decode freezes
+  useEffect(() => {
+    if (isPaused) return;
+
+    const imageUrls = new Set<string>();
+    slides.forEach((s) => {
+      if (s.image) imageUrls.add(s.image);
+      s.ingredients?.forEach((ing) => {
+        if (ing.image) imageUrls.add(ing.image);
+      });
+    });
+
+    imageUrls.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      if (img.decode) {
+        img.decode().catch(() => {});
+      }
+    });
+  }, [isPaused]);
 
   const {
     currentIndex,

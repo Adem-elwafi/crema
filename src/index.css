@@ -87,3 +87,23 @@ html {
     clip-path: polygon(0 49%, 100% 44%, 100% 100%, 0 100%);
   }
 }
+
+/* Off-thread GPU compositor keyframes for floating ingredient rotations */
+@keyframes spin-cw {
+  from {
+    transform: rotate(var(--start-rot, 0deg));
+  }
+  to {
+    transform: rotate(calc(var(--start-rot, 0deg) + 360deg));
+  }
+}
+
+@keyframes spin-ccw {
+  from {
+    transform: rotate(var(--start-rot, 0deg));
+  }
+  to {
+    transform: rotate(calc(var(--start-rot, 0deg) - 360deg));
+  }
+}
+

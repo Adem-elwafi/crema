@@ -9,131 +9,85 @@ interface NavLogoProps {
 }
 
 export const NavLogo = ({ isScrolled, onClick, variant = 'light' }: NavLogoProps) => {
-  // React 18 useId - guaranteed unique per component instance.
-  // This prevents SVG gradient ID collisions when NavLogo renders
-  // twice simultaneously in the split-clip dual-layer navbar.
+  // React 18 useId - unique per component instance to prevent SVG gradient collisions
   const uid = useId().replace(/:/g, '');
   const gradId = `crema-${uid}-${variant}`;
   const isDark = variant === 'dark';
 
-  // The custom transition spring to make it buttery smooth (matches the 'Bucks Sauce' feel)
-  const morphTransition = { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const };
+  // Buttery-smooth spring curve for the cross-fade
+  const morphTransition = { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
     <a
       href="#hero"
       onClick={onClick}
-      className="group relative inline-flex items-center select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
+      className="group relative inline-flex items-center select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full h-12"
       aria-label="CREMA - Return to top"
     >
-      <motion.div
-        className="flex items-center overflow-hidden transition-colors"
-        initial={false}
-        animate={{
-          backgroundColor: isScrolled ? 'rgba(43, 23, 11, 0.95)' : 'rgba(0, 0, 0, 0)',
-          borderColor: isScrolled ? 'rgba(245, 235, 225, 0.15)' : 'rgba(0, 0, 0, 0)',
-          paddingLeft: isScrolled ? '10px' : '0px',
-          paddingRight: isScrolled ? '16px' : '0px',
-          paddingTop: isScrolled ? '6px' : '0px',
-          paddingBottom: isScrolled ? '6px' : '0px',
-          borderRadius: '9999px',
-          backdropFilter: isScrolled ? 'blur(16px)' : 'blur(0px)',
-          borderWidth: isScrolled ? '1px' : '0px',
-          boxShadow: isScrolled ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : 'none',
-          gap: isScrolled ? '8px' : '12px'
-        }}
-        transition={morphTransition}
-      >
-        {/* LOGO MARK CONTAINER - The "Overlapping Cross-Fade" Illusion */}
+      <div className="relative flex items-center">
+        {/* STATE 1: EXPANDED LOGO (Active when unscrolled) */}
         <motion.div
-          className="relative flex items-center justify-center shrink-0"
+          className="flex items-center gap-3 origin-left select-none"
           initial={false}
           animate={{
-            width: isScrolled ? 28 : 48,
-            height: isScrolled ? 28 : 48,
+            opacity: isScrolled ? 0 : 1,
+            scale: isScrolled ? 0.85 : 1,
+            y: isScrolled ? -4 : 0,
+            pointerEvents: isScrolled ? 'none' : 'auto',
           }}
           transition={morphTransition}
+          style={{ willChange: 'transform, opacity' }}
         >
-          {/* EXPANDED MARK (Fades out, shrinks, moves up) */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none drop-shadow-sm"
-            initial={false}
-            animate={{
-              opacity: isScrolled ? 0 : 1,
-              scale: isScrolled ? 0.7 : 1,
-              y: isScrolled ? -12 : 0,
-            }}
-            transition={morphTransition}
-          >
-            <div style={{ width: 48, height: 48 }}>
-              <ExpandedMark id={`${gradId}-exp`} isDark={isDark} />
-            </div>
-          </motion.div>
+          {/* Expanded Mark */}
+          <div className="w-12 h-12 flex items-center justify-center shrink-0 drop-shadow-sm">
+            <ExpandedMark id={`${gradId}-exp`} isDark={isDark} />
+          </div>
 
-          {/* COMPACT MARK (Fades in, shrinks into place, moves up from below) */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            initial={false}
-            animate={{
-              opacity: isScrolled ? 1 : 0,
-              scale: isScrolled ? 1 : 1.3,
-              y: isScrolled ? 0 : 12,
-            }}
-            transition={morphTransition}
-          >
-            <div style={{ width: 28, height: 28 }}>
-              <CompactMark id={`${gradId}-cmp`} />
-            </div>
-          </motion.div>
+          {/* Typography */}
+          <div className="flex flex-col justify-center">
+            <span
+              className={`font-display font-bold leading-none whitespace-nowrap text-2xl tracking-[0.16em] transition-colors duration-300 drop-shadow-sm ${
+                isDark
+                  ? 'text-brown-900 group-hover:text-brown-700'
+                  : 'text-accent group-hover:text-gold'
+              }`}
+            >
+              CREMA
+            </span>
+            <span
+              className={`font-body uppercase font-semibold whitespace-nowrap text-[8px] tracking-[0.3em] mt-1 hidden md:block ${
+                isDark ? 'text-brown-600' : 'text-cream/80'
+              }`}
+            >
+              Artisanal Roasters
+            </span>
+          </div>
         </motion.div>
 
-        {/* TYPOGRAPHY CONTAINER */}
-        <motion.div 
-          className="flex flex-col justify-center"
+        {/* STATE 2: COMPACT PILL LOGO (Active when scrolled) */}
+        <motion.div
+          className="absolute left-0 top-1/2 flex items-center gap-2 pl-2.5 pr-4 py-1.5 rounded-full bg-brown-900/95 border border-cream/15 backdrop-blur-md shadow-2xl origin-left select-none"
           initial={false}
           animate={{
-            y: isScrolled ? 1 : 0 // Optical nudge to align text with the smaller pill center
+            opacity: isScrolled ? 1 : 0,
+            scale: isScrolled ? 1 : 0.85,
+            y: '-50%',
+            pointerEvents: isScrolled ? 'auto' : 'none',
           }}
           transition={morphTransition}
+          style={{ willChange: 'transform, opacity' }}
         >
-          {/* Main Logotype */}
-          <motion.span
-            className={`font-display font-bold leading-none drop-shadow-sm whitespace-nowrap transition-colors duration-300 ${
-              isScrolled
-                ? 'text-accent group-hover:text-gold'
-                : isDark
-                ? 'text-brown-900 group-hover:text-brown-700'
-                : 'text-accent group-hover:text-gold'
-            }`}
-            initial={false}
-            animate={{
-              fontSize: isScrolled ? '14px' : '24px',
-              letterSpacing: isScrolled ? '0.14em' : '0.16em',
-            }}
-            transition={morphTransition}
-          >
+          {/* Compact Mark */}
+          <div className="w-7 h-7 flex items-center justify-center shrink-0">
+            <CompactMark id={`${gradId}-cmp`} />
+          </div>
+
+          {/* Compact Typography */}
+          <span className="font-display font-bold leading-none text-sm tracking-[0.14em] text-accent group-hover:text-gold whitespace-nowrap">
             CREMA
-          </motion.span>
-          
-          {/* Subtitle — hidden on mobile to prevent overflow */}
-          <motion.span
-            className={`font-body uppercase font-semibold whitespace-nowrap overflow-hidden hidden md:block ${
-              isDark ? 'text-brown-600' : 'text-cream/80'
-            }`}
-            initial={false}
-            animate={{
-              height: isScrolled ? 0 : 'auto',
-              opacity: isScrolled ? 0 : 1,
-              fontSize: isScrolled ? '0px' : '8px',
-              letterSpacing: isScrolled ? '0em' : '0.3em',
-              marginTop: isScrolled ? '0px' : '4px',
-            }}
-            transition={morphTransition}
-          >
-            Artisanal Roasters
-          </motion.span>
+          </span>
         </motion.div>
-      </motion.div>
+      </div>
     </a>
   );
 };

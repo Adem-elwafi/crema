@@ -2,11 +2,11 @@ import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 
-// Import the actual transparent cutout PNGs used in the Hero section
-import beansGroupImg from '../assets/images/hero/flying-coffee-beans.png';
-import beanSingleImg from '../assets/images/hero/single-coffee-bean.png';
-import cinnamonImg from '../assets/images/hero/cinnamon-sticks.png';
-import splashImg from '../assets/images/hero/cream-splash.png';
+// Import the actual transparent cutout WebP assets used in the Hero section
+import beansGroupImg from '../assets/images/hero/flying-coffee-beans.webp';
+import beanSingleImg from '../assets/images/hero/single-coffee-bean.webp';
+import cinnamonImg from '../assets/images/hero/cinnamon-sticks.webp';
+import splashImg from '../assets/images/hero/cream-splash.webp';
 
 export default function Preloader({ onComplete }: { onComplete: () => void }) {
   const container = useRef<HTMLDivElement>(null);
