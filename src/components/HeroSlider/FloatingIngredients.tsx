@@ -34,7 +34,7 @@ interface FloatingIngredientsProps {
 export default function FloatingIngredients({ ingredients, slideId, direction }: FloatingIngredientsProps) {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-visible">
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence initial={false}>
         {ingredients.map((ingredient, i) => {
           const layer = layerFor(ingredient.depth);
           const cfg = LAYER[layer];
@@ -62,13 +62,23 @@ export default function FloatingIngredients({ ingredients, slideId, direction }:
               <motion.div
                 initial={{ opacity: 0, x: direction * -70, y: -35, scale: 0.4 }}
                 animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                exit={{ opacity: 0, x: direction * 40, y: 20, scale: 0.5 }}
+                exit={{
+                  opacity: 0,
+                  x: direction * 40,
+                  y: 20,
+                  scale: 0.5,
+                  transition: {
+                    opacity: { duration: 0.22, delay: i * 0.02 },
+                    x: { duration: 0.35, ease: 'easeOut', delay: i * 0.02 },
+                    y: { duration: 0.35, ease: 'easeOut', delay: i * 0.02 },
+                    scale: { duration: 0.35, ease: 'easeOut', delay: i * 0.02 },
+                  }
+                }}
                 transition={{
-                  opacity: { duration: 0.35 },
-                  x: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1] },
-                  y: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1] },
-                  scale: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1] },
-                  delay: i * 0.05
+                  opacity: { duration: 0.35, delay: i * 0.04 },
+                  x: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.04 },
+                  y: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.04 },
+                  scale: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.04 },
                 }}
                 style={{ willChange: 'transform, opacity' }}
               >

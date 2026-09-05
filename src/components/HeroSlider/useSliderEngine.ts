@@ -7,7 +7,7 @@ interface TouchState {
 
 const SWIPE_THRESHOLD = 48;
 
-export function useSliderEngine(totalSlides: number, _isPaused: boolean = false) {
+export function useSliderEngine(totalSlides: number, isPaused: boolean = false) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -18,12 +18,12 @@ export function useSliderEngine(totalSlides: number, _isPaused: boolean = false)
   const touch = useRef<TouchState | null>(null);
 
   const go = useCallback((nextIndex: number, dir: 1 | -1) => {
-    if (isAnimatingRef.current) return;
+    if (isAnimatingRef.current || isPaused) return;
     isAnimatingRef.current = true;
     setDirection(dir);
     setIsAnimating(true);
     setCurrentIndex(nextIndex);
-  }, []);
+  }, [isPaused]);
 
   // Callback invoked by the orchestrator once BOTH regions have settled.
   const unlock = useCallback(() => {
@@ -46,13 +46,14 @@ export function useSliderEngine(totalSlides: number, _isPaused: boolean = false)
 
   // Keyboard accessibility: left/right arrows.
   useEffect(() => {
+    if (isPaused) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') onNext();
       else if (e.key === 'ArrowLeft') onPrev();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onNext, onPrev]);
+  }, [onNext, onPrev, isPaused]);
 
   // Native touch swipe handling. Returns handlers bound to the hero section.
   const touchHandlers = {
