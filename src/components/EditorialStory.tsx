@@ -1,13 +1,7 @@
-import { useRef, useEffect, useState } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Compass, Clock, VolumeX, ArrowUpRight } from 'lucide-react';
-
+import { Compass, Clock, VolumeX, ArrowUpRight, Sparkles } from 'lucide-react';
 import qualityCoffeeImg from '../assets/images/features/quality-coffee.jpg';
 import freshDeliciousImg from '../assets/images/features/fresh-delicious.jpg';
 import cozyAtmosphereImg from '../assets/images/features/cozy-atmosphere.jpg';
-
-gsap.registerPlugin(ScrollTrigger);
 
 interface Chapter {
   id: string;
@@ -87,241 +81,139 @@ const CHAPTERS: Chapter[] = [
 ];
 
 export default function EditorialStory() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const leftImagesRef = useRef<HTMLDivElement>(null);
-  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const ctx = gsap.context(() => {
-      // Create ScrollTriggers for each chapter on desktop
-      const chapterEls = gsap.utils.toArray<HTMLElement>('.editorial-chapter');
-
-      chapterEls.forEach((el, index) => {
-        ScrollTrigger.create({
-          trigger: el,
-          start: 'top 55%',
-          end: 'bottom 55%',
-          onEnter: () => setActiveChapterIndex(index),
-          onEnterBack: () => setActiveChapterIndex(index),
-        });
-      });
-    }, section);
-
-    return () => ctx.revert();
-  }, []);
-
-  const activeChapter = CHAPTERS[activeChapterIndex];
-
   return (
     <section
-      ref={sectionRef}
       id="why-us"
-      className="relative w-full bg-[#FDF8F3] text-brown-900 overflow-hidden"
+      className="relative w-full bg-[#FDF8F3] text-brown-900 py-24 sm:py-32 px-6 sm:px-10 lg:px-16 overflow-hidden"
     >
       {/* Anchor shim for legacy #about links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
 
-      {/* DESKTOP SPLIT EDITORIAL VIEW (>= 1024px) */}
-      <div className="hidden lg:flex w-full min-h-screen">
-        {/* Left Column: Pinned Sticky Visual Portal (52% width) */}
-        <div className="w-[52%] h-screen sticky top-0 p-8 xl:p-12 flex flex-col justify-between overflow-hidden border-r border-brown-200/50 bg-[#F5EDE4]/60">
-          {/* Top Stamp */}
-          <div className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.25em] text-accent">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-accent" />
-              <span>03 / EDITORIAL ARCHIVE</span>
-            </div>
-            <span className="text-brown-400">CHAPTER {activeChapter.index} OF 03</span>
+      {/* Atmospheric background accents */}
+      <div className="absolute top-20 right-0 w-96 h-96 bg-accent/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-20 left-0 w-96 h-96 bg-brown-900/5 rounded-full blur-[140px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Section Header */}
+        <div className="text-center max-w-2xl mx-auto mb-20 sm:mb-28">
+          <div className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-3">
+            <Sparkles size={14} />
+            <span>03 / THE EDITORIAL MONOGRAPH</span>
           </div>
-
-          {/* Central Image Canvas with Morphing Transitions */}
-          <div
-            ref={leftImagesRef}
-            className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl my-auto border border-brown-900/10 group"
-          >
-            {CHAPTERS.map((chap, idx) => (
-              <div
-                key={chap.id}
-                className={`absolute inset-0 transition-all duration-1000 ease-out ${
-                  idx === activeChapterIndex
-                    ? 'opacity-100 scale-100 filter-none pointer-events-auto'
-                    : 'opacity-0 scale-105 pointer-events-none'
-                }`}
-              >
-                <img
-                  src={chap.image}
-                  alt={chap.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brown-900/80 via-transparent to-black/10" />
-
-                {/* Floating Chapter Badge */}
-                <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest text-brown-900 shadow-sm uppercase">
-                  {chap.tag}
-                </div>
-
-                {/* Technical Spec Sheet Overlay at bottom of photo */}
-                <div className="absolute bottom-6 inset-x-6 grid grid-cols-2 gap-3 p-4 rounded-2xl bg-[#1C100B]/85 backdrop-blur-md border border-[#C8956C]/20 text-cream">
-                  {chap.specs.map((spec, sIdx) => (
-                    <div key={sIdx} className="font-mono">
-                      <span className="text-[10px] text-accent/80 tracking-wider block uppercase">
-                        {spec.label}
-                      </span>
-                      <span className="text-xs text-cream/90 font-medium tracking-wide">
-                        {spec.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom Footnote */}
-          <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.2em] text-brown-400">
-            <span>CREMA MONOGRAPH VOL. IV</span>
-            <span>UNCOMPROMISED DISCIPLINE</span>
-          </div>
-        </div>
-
-        {/* Right Column: Scrolling Narrative Track (48% width) */}
-        <div className="w-[48%] px-10 xl:px-16 py-20 flex flex-col">
-          {CHAPTERS.map((chap, idx) => (
-            <div
-              key={chap.id}
-              className={`editorial-chapter min-h-[90vh] flex flex-col justify-center relative ${
-                idx !== CHAPTERS.length - 1 ? 'mb-32' : 'mb-16'
-              }`}
-            >
-              {/* Aggressive Overlapping Chapter Outline Index */}
-              <div className="font-display font-black text-[7rem] xl:text-[9rem] leading-none text-outline-brown opacity-25 select-none -mb-10 -ml-4 pointer-events-none">
-                {chap.index}
-              </div>
-
-              {/* Tag & Subtitle */}
-              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.25em] text-accent mb-3 font-semibold">
-                <chap.icon size={16} />
-                <span>{chap.tag}</span>
-              </div>
-
-              {/* Headline */}
-              <h3 className="font-display text-4xl xl:text-5xl font-bold text-brown-900 leading-tight mb-6">
-                {chap.title}
-              </h3>
-
-              {/* Editorial Quote */}
-              <blockquote className="font-display italic text-xl xl:text-2xl text-accent-dark font-medium leading-snug mb-8 border-l-2 border-accent pl-6 py-1">
-                &ldquo;{chap.quote}&rdquo;
-              </blockquote>
-
-              {/* Story Narrative with Drop Cap */}
-              <div className="space-y-4 font-body text-brown-700 leading-relaxed text-base xl:text-lg">
-                <p>
-                  <span className="float-left font-display text-5xl leading-none font-bold text-brown-900 pr-3 pt-1">
-                    {chap.dropCap}
-                  </span>
-                  {chap.story}
-                </p>
-                <p>{chap.storyCont}</p>
-              </div>
-
-              {/* Explore Link */}
-              <div className="mt-8 pt-6 border-t border-brown-200 flex items-center justify-between">
-                <a
-                  href="#menu"
-                  className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] font-semibold text-accent hover:text-accent-dark transition-colors group"
-                >
-                  <span>EXPLORE TASTING NOTES</span>
-                  <ArrowUpRight
-                    size={16}
-                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
-                  />
-                </a>
-                <span className="font-mono text-xs text-brown-400">
-                  {idx + 1} / 3
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* MOBILE / TABLET STACKED MAGAZINE VIEW (< 1024px) */}
-      <div className="lg:hidden px-6 sm:px-10 py-20 space-y-24">
-        {/* Header Intro */}
-        <div className="text-center max-w-xl mx-auto mb-12">
-          <span className="font-mono text-xs uppercase tracking-[0.25em] text-accent font-semibold block mb-2">
-            03 / EDITORIAL ARCHIVE
-          </span>
-          <h2 className="font-display text-3xl sm:text-4xl text-brown-900 font-bold">
+          <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl text-brown-900 font-bold tracking-tight mb-6">
             The Philosophy in Three Chapters
           </h2>
+          <p className="font-body text-brown-500 text-base sm:text-lg leading-relaxed">
+            Three foundational disciplines that define our standard of craftsmanship: sacred sourcing, nocturnal baking, and meditative spatial acoustics.
+          </p>
         </div>
 
-        {CHAPTERS.map((chap) => (
-          <article
-            key={chap.id}
-            className="rounded-3xl bg-cream-dark/60 border border-brown-200/60 p-6 sm:p-8 overflow-hidden shadow-sm"
-          >
-            {/* Outline Index */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-display text-5xl font-black text-outline-brown opacity-40">
-                {chap.index}
-              </span>
-              <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
-                {chap.tag}
-              </span>
-            </div>
+        {/* 3 Alternating Editorial Rows */}
+        <div className="space-y-28 sm:space-y-36">
+          {CHAPTERS.map((chap, idx) => {
+            const isEven = idx % 2 === 1; // Row 2 has text on left, photo on right on desktop
 
-            {/* Photo */}
-            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-md mb-6 relative">
-              <img
-                src={chap.image}
-                alt={chap.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-brown-900/60 via-transparent to-transparent" />
-            </div>
+            return (
+              <div
+                key={chap.id}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center"
+              >
+                {/* Photo Column */}
+                <div
+                  className={`lg:col-span-6 ${
+                    isEven ? 'lg:order-2' : 'lg:order-1'
+                  }`}
+                >
+                  <div className="relative group rounded-3xl overflow-hidden shadow-2xl border border-brown-900/10 bg-[#1C100B]">
+                    <div className="relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden">
+                      <img
+                        src={chap.image}
+                        alt={chap.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-brown-900/80 via-transparent to-black/10" />
 
-            {/* Title */}
-            <h3 className="font-display text-2xl sm:text-3xl font-bold text-brown-900 mb-4">
-              {chap.title}
-            </h3>
+                      {/* Floating chapter tag badge */}
+                      <div className="absolute top-5 left-5 bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest text-brown-900 shadow-md uppercase">
+                        {chap.tag}
+                      </div>
 
-            {/* Quote */}
-            <blockquote className="font-display italic text-lg text-accent-dark font-medium leading-snug mb-6 border-l-2 border-accent pl-4">
-              &ldquo;{chap.quote}&rdquo;
-            </blockquote>
-
-            {/* Story */}
-            <p className="font-body text-brown-700 text-sm sm:text-base leading-relaxed mb-6">
-              {chap.dropCap + chap.story}
-            </p>
-
-            {/* Mobile Specs */}
-            <div className="grid grid-cols-2 gap-2 p-4 rounded-xl bg-brown-900 text-cream font-mono text-[11px] mb-6">
-              {chap.specs.map((spec, sIdx) => (
-                <div key={sIdx}>
-                  <span className="text-[10px] text-accent block uppercase">
-                    {spec.label}
-                  </span>
-                  <span className="text-cream/90">{spec.value}</span>
+                      {/* Technical Spec Sheet Overlay */}
+                      <div className="absolute bottom-5 inset-x-5 grid grid-cols-2 gap-2.5 sm:gap-3 p-4 rounded-2xl bg-[#1C100B]/90 backdrop-blur-md border border-[#C8956C]/20 text-cream">
+                        {chap.specs.map((spec, sIdx) => (
+                          <div key={sIdx} className="font-mono">
+                            <span className="text-[10px] text-accent/80 tracking-wider block uppercase">
+                              {spec.label}
+                            </span>
+                            <span className="text-xs text-cream/90 font-medium tracking-wide">
+                              {spec.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
 
-            <a
-              href="#menu"
-              className="inline-flex items-center gap-2 text-accent font-semibold text-xs font-mono uppercase tracking-widest hover:text-accent-dark"
-            >
-              <span>EXPERIENCE THE CRAFT</span>
-              <ArrowUpRight size={14} />
-            </a>
-          </article>
-        ))}
+                {/* Narrative Text Column */}
+                <div
+                  className={`lg:col-span-6 flex flex-col justify-center ${
+                    isEven ? 'lg:order-1' : 'lg:order-2'
+                  }`}
+                >
+                  {/* Oversized Outline Numeral */}
+                  <div className="font-display font-black text-6xl sm:text-8xl lg:text-9xl leading-none text-outline-brown opacity-20 select-none -mb-6 sm:-mb-10 -ml-2 pointer-events-none">
+                    {chap.index}
+                  </div>
+
+                  {/* Tag & Subtitle */}
+                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.25em] text-accent mb-3 font-semibold">
+                    <chap.icon size={16} />
+                    <span>CHAPTER {chap.index} · {chap.tag}</span>
+                  </div>
+
+                  {/* Headline */}
+                  <h3 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-brown-900 leading-tight mb-5">
+                    {chap.title}
+                  </h3>
+
+                  {/* Editorial Quote */}
+                  <blockquote className="font-display italic text-lg sm:text-xl text-accent-dark font-medium leading-snug mb-6 border-l-2 border-accent pl-5 py-0.5">
+                    &ldquo;{chap.quote}&rdquo;
+                  </blockquote>
+
+                  {/* Story Narrative with Drop Cap */}
+                  <div className="space-y-4 font-body text-brown-700 leading-relaxed text-sm sm:text-base">
+                    <p>
+                      <span className="float-left font-display text-4xl sm:text-5xl leading-none font-bold text-brown-900 pr-3 pt-1">
+                        {chap.dropCap}
+                      </span>
+                      {chap.story}
+                    </p>
+                    <p>{chap.storyCont}</p>
+                  </div>
+
+                  {/* Explore Link & Monograph Index */}
+                  <div className="mt-8 pt-6 border-t border-brown-200/70 flex items-center justify-between">
+                    <a
+                      href="#menu"
+                      className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] font-semibold text-accent hover:text-accent-dark transition-colors group"
+                    >
+                      <span>EXPLORE EXTRACTIONS</span>
+                      <ArrowUpRight
+                        size={16}
+                        className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                      />
+                    </a>
+                    <span className="font-mono text-xs text-brown-400">
+                      VOLUME IV · {idx + 1} OF 3
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
