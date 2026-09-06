@@ -21,11 +21,11 @@ export default function CinematicManifesto() {
     const ctx = gsap.context(() => {
       const words = gsap.utils.toArray<HTMLElement>('.manifesto-word');
 
-      // Timeline scrubbed by the scroll runway with advanced trigger timing (top 75%)
+      // Timeline scrubbed by the 180vh scroll runway
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
-          start: 'top 75%',
+          start: 'top top',
           end: 'bottom bottom',
           pin: pinEl,
           scrub: 0.8,
@@ -42,32 +42,31 @@ export default function CinematicManifesto() {
         },
       });
 
-      // Baseline state: High baseline opacity (0.28) and moderate y offset (45%)
-      // No filter: blur() to eliminate GPU ghosting and muddy artifacts
+      // Initial state of words
       gsap.set(words, {
-        y: '45%',
-        opacity: 0.28,
-        letterSpacing: '0.02em',
+        y: '115%',
+        opacity: 0.15,
+        filter: 'blur(8px)',
       });
 
-      // Crisp masked rise, letter-spacing settle, and opacity illumination
+      // Organic sequential wave rise and illumination
       tl.to(words, {
         y: '0%',
         opacity: 1,
-        letterSpacing: '0em',
+        filter: 'blur(0px)',
         stagger: {
-          each: 0.06,
+          each: 0.08,
           from: 'start',
         },
         ease: 'power2.out',
-        duration: 1.2,
+        duration: 1.5,
       });
 
       // Ambient radial glow pulsation on scroll
       tl.fromTo(
         '.manifesto-glow',
-        { scale: 0.9, opacity: 0.4 },
-        { scale: 1.25, opacity: 0.85, ease: 'sine.inOut', duration: 1.2 },
+        { scale: 0.85, opacity: 0.3 },
+        { scale: 1.3, opacity: 0.8, ease: 'sine.inOut', duration: 1.5 },
         0
       );
     }, container);
@@ -79,7 +78,7 @@ export default function CinematicManifesto() {
     return text.split(' ').map((word, i) => (
       <span
         key={i}
-        className="inline-block overflow-hidden align-top mr-[0.28em] pb-[0.1em] leading-none"
+        className="inline-block overflow-hidden align-top mr-[0.28em] pb-[0.12em] leading-none"
       >
         <span
           className={`manifesto-word inline-block will-change-transform ${
@@ -98,17 +97,6 @@ export default function CinematicManifesto() {
       id="manifesto"
       className="relative w-full h-[180vh] bg-[#120B08] text-cream"
     >
-      {/* Seamless Geometric Angled Transition Wedge from Hero (Desktop >= 955px) */}
-      {/* Connects the Hero's diagonal split (which terminates at 40% left / 60% right cream) smoothly into the obsidian canvas */}
-      <svg
-        className="hidden min-[955px]:block absolute top-0 left-0 w-full h-16 xl:h-24 z-30 pointer-events-none"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <polygon points="40,0 100,0 100,100" fill="#FDF8F3" />
-      </svg>
-
       {/* Sticky / Pinned Fullscreen Stage */}
       <div
         ref={pinRef}
@@ -118,7 +106,7 @@ export default function CinematicManifesto() {
         <div className="manifesto-glow absolute inset-0 bg-radial-glow pointer-events-none transition-transform duration-700 will-change-transform" />
 
         {/* Minimalist Micro-Metadata: Top Row */}
-        <div className="relative z-10 flex items-center justify-between font-mono text-[11px] sm:text-xs tracking-[0.25em] text-[#C8956C]/80 uppercase pt-4 sm:pt-0">
+        <div className="relative z-10 flex items-center justify-between font-mono text-[11px] sm:text-xs tracking-[0.25em] text-[#C8956C]/80 uppercase">
           <div className="flex items-center gap-3">
             <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
             <span>01 / MANIFESTO</span>
