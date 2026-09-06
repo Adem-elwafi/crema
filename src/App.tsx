@@ -1,29 +1,32 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { LenisProvider } from './context/LenisProvider'
 import Preloader from './components/Preloader'
 import Navbar from './components/Navbar'
 import HeroSlider from './components/HeroSlider'
-import WhyChooseUs from './components/WhyChooseUs'
-import MenuHighlights from './components/MenuHighlights'
-import VisitUs from './components/VisitUs'
-import Newsletter from './components/Newsletter'
-import Footer from './components/Footer'
+
+const WhyChooseUs = lazy(() => import('./components/WhyChooseUs'));
+const MenuHighlights = lazy(() => import('./components/MenuHighlights'));
+const VisitUs = lazy(() => import('./components/VisitUs'));
+const Newsletter = lazy(() => import('./components/Newsletter'));
+const Footer = lazy(() => import('./components/Footer'));
 
 function App() {
-  const [preloaderComplete, setPreloaderComplete] = useState(false);
+  const [isPreloaderComplete, setIsPreloaderComplete] = useState(false);
 
   return (
-    <LenisProvider paused={!preloaderComplete}>
+    <LenisProvider paused={!isPreloaderComplete}>
       <div className="bg-cream text-brown-900 font-body overflow-x-hidden">
-        {!preloaderComplete && <Preloader onComplete={() => setPreloaderComplete(true)} />}
+        {!isPreloaderComplete && <Preloader onComplete={() => setIsPreloaderComplete(true)} />}
 
         <Navbar />
-        <HeroSlider isPaused={!preloaderComplete} />
-        <WhyChooseUs />
-        <MenuHighlights />
-        <VisitUs />
-        <Newsletter />
-        <Footer />
+        <HeroSlider isPaused={!isPreloaderComplete} />
+        <Suspense fallback={null}>
+          <WhyChooseUs />
+          <MenuHighlights />
+          <VisitUs />
+          <Newsletter />
+          <Footer />
+        </Suspense>
       </div>
     </LenisProvider>
   )
