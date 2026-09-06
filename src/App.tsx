@@ -4,8 +4,9 @@ import Preloader from './components/Preloader'
 import Navbar from './components/Navbar'
 import HeroSlider from './components/HeroSlider'
 
-const WhyChooseUs = lazy(() => import('./components/WhyChooseUs'));
-const MenuHighlights = lazy(() => import('./components/MenuHighlights'));
+const CinematicManifesto = lazy(() => import('./components/CinematicManifesto'));
+const TactileMenu = lazy(() => import('./components/TactileMenu'));
+const EditorialStory = lazy(() => import('./components/EditorialStory'));
 const VisitUs = lazy(() => import('./components/VisitUs'));
 const Newsletter = lazy(() => import('./components/Newsletter'));
 const Footer = lazy(() => import('./components/Footer'));
@@ -21,8 +22,9 @@ function App() {
         <Navbar />
         <HeroSlider isPaused={!isPreloaderComplete} />
         <Suspense fallback={null}>
-          <WhyChooseUs />
-          <MenuHighlights />
+          <CinematicManifesto />
+          <TactileMenu />
+          <EditorialStory />
           <VisitUs />
           <Newsletter />
           <Footer />

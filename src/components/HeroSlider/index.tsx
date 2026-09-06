@@ -59,6 +59,7 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
 
   return (
     <section
+      id="hero"
       className="relative w-full min-h-screen overflow-hidden bg-cream touch-pan-y"
       {...touchHandlers}
     >

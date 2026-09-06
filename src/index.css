@@ -107,3 +107,45 @@ html {
   }
 }
 
+/* 3D and Scroll-Telling utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1200 {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Editorial outline numerals for chapter indices */
+.text-outline-brown {
+  -webkit-text-stroke: 1.5px rgba(44, 24, 16, 0.3);
+  color: transparent;
+}
+
+.text-outline-accent {
+  -webkit-text-stroke: 1.5px rgba(200, 149, 108, 0.45);
+  color: transparent;
+}
+
+.text-outline-cream {
+  -webkit-text-stroke: 1.5px rgba(253, 248, 243, 0.35);
+  color: transparent;
+}
+
+/* Noise overlay for cinematic manifesto & tactile cards */
+.bg-radial-obsidian {
+  background: radial-gradient(circle at 50% 50%, #1c110c 0%, #100a07 100%);
+}
+
+.bg-radial-glow {
+  background: radial-gradient(circle at 50% 40%, rgba(200, 149, 108, 0.12) 0%, rgba(18, 11, 8, 0) 70%);
+}
+
