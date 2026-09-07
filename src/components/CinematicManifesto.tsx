@@ -95,12 +95,12 @@ export default function CinematicManifesto() {
     <section
       ref={containerRef}
       id="manifesto"
-      className="relative w-full h-[180vh] bg-[#120B08] text-cream"
+      className="relative z-20 w-full h-[180vh] -mt-12 sm:-mt-16 lg:-mt-20 bg-brown-900 text-cream rounded-t-[3.5rem] sm:rounded-t-[5rem] lg:rounded-t-[6.5rem]"
     >
       {/* Sticky / Pinned Fullscreen Stage */}
       <div
         ref={pinRef}
-        className="relative w-full h-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none bg-radial-obsidian"
+        className="relative w-full h-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none bg-radial-obsidian rounded-t-[3.5rem] sm:rounded-t-[5rem] lg:rounded-t-[6.5rem] shadow-[0_-25px_50px_rgba(44,24,16,0.35)]"
       >
         {/* Subtle Ambient Radial Amber Glow */}
         <div className="manifesto-glow absolute inset-0 bg-radial-glow pointer-events-none transition-transform duration-700 will-change-transform" />
