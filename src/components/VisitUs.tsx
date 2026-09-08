@@ -80,7 +80,7 @@ export default function VisitUs() {
             <img
               src={cafeInterior1Img}
               alt="CREMA Main Café Space"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out will-change-transform"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-brown-900/70 via-transparent to-black/10" />
             <div className="absolute bottom-4 left-5 text-cream">
@@ -94,7 +94,7 @@ export default function VisitUs() {
             <img
               src={cafeInterior2Img}
               alt="Cozy Seating Corner"
-              className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out will-change-transform"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-brown-900/60 via-transparent to-transparent" />
             <div className="absolute bottom-3 left-4 text-cream">
@@ -108,7 +108,7 @@ export default function VisitUs() {
             <img
               src={cafeInterior3Img}
               alt="Brew Bar"
-              className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out will-change-transform"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-brown-900/60 via-transparent to-transparent" />
             <div className="absolute bottom-3 left-4 text-cream">
