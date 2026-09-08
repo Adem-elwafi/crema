@@ -141,10 +141,11 @@ export default function EditorialStory() {
             {CHAPTERS.map((chap, idx) => (
               <div
                 key={chap.id}
-                className={`absolute inset-0 transition-all duration-1000 ease-out ${
+                style={{ willChange: 'opacity, transform' }}
+                className={`absolute inset-0 transition-[opacity,transform] duration-600 ease-out ${
                   idx === activeChapterIndex
                     ? 'opacity-100 scale-100 filter-none pointer-events-auto'
-                    : 'opacity-0 scale-105 pointer-events-none'
+                    : 'opacity-0 scale-[1.02] pointer-events-none'
                 }`}
               >
                 <img
