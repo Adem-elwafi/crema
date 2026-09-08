@@ -1,12 +1,9 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import Lenis from 'lenis';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { gsap, ScrollTrigger } from '../lib/gsap';
 import { lenisConfig } from '../lib/lenis';
 import { LenisContext } from './LenisContext';
-
-gsap.registerPlugin(ScrollTrigger);
 
 interface LenisProviderProps {
   children: ReactNode;
@@ -66,7 +63,7 @@ export function LenisProvider({ children, paused = false, onReady }: LenisProvid
   }, [paused]);
 
   return (
-    <LenisContext.Provider value={lenisRef.current}>
+    <LenisContext.Provider value={lenisRef}>
       {children}
     </LenisContext.Provider>
   );

@@ -1,15 +1,5 @@
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import ScrollTrigger from 'gsap/ScrollTrigger'
-
-// Declare global Three.js types to avoid TypeScript errors
-declare global {
-  interface Window {
-    THREE?: typeof import('three')
-  }
-}
-
-gsap.registerPlugin(ScrollTrigger)
+import { gsap } from '../lib/gsap'
 
 const Coffee3D = () => {
   const containerRef = useRef<HTMLDivElement>(null)

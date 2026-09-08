@@ -1,8 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
+import { gsap, ScrollTrigger } from '../lib/gsap';
 
 const FIRST_LINE = 'We do not simply brew coffee.';
 const SECOND_LINE = 'We harvest silence, shape heat, and capture the fleeting geometry of an unhurried morning.';
@@ -21,53 +18,60 @@ export default function CinematicManifesto() {
     const ctx = gsap.context(() => {
       const words = gsap.utils.toArray<HTMLElement>('.manifesto-word');
 
-      // Timeline scrubbed by the 180vh scroll runway
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: container,
-          start: 'top top',
-          end: 'bottom bottom',
-          pin: pinEl,
-          scrub: 0.8,
-          anticipatePin: 1,
-          onUpdate: (self) => {
-            if (progressLineRef.current) {
-              progressLineRef.current.style.transform = `scaleX(${self.progress})`;
-            }
-            if (progressNumRef.current) {
-              const pct = Math.round(self.progress * 100);
-              progressNumRef.current.textContent = `${pct.toString().padStart(2, '0')}%`;
-            }
-          },
+      // ─── Pin trigger ──────────────────────────────────────────────────────────
+      // Keeps the stage pinned while the scroll runway plays out.
+      // Progress gauge is driven by this trigger.
+      ScrollTrigger.create({
+        trigger: container,
+        start: 'top top',
+        end: 'bottom bottom',
+        pin: pinEl,
+        onUpdate: (self) => {
+          if (progressLineRef.current) {
+            progressLineRef.current.style.transform = `scaleX(${self.progress})`;
+          }
+          if (progressNumRef.current) {
+            const pct = Math.round(self.progress * 100);
+            progressNumRef.current.textContent = `${pct.toString().padStart(2, '0')}%`;
+          }
         },
       });
 
-      // Initial state of words
-      gsap.set(words, {
-        y: '115%',
-        opacity: 0.15,
-        filter: 'blur(8px)',
-      });
+      // ─── Word reveal trigger ──────────────────────────────────────────────────
+      // Starts the MOMENT the section enters the bottom of the viewport,
+      // and finishes when the section center reaches the viewport center.
+      // Independent of the pin, so animation begins before the section
+      // has fully scrolled into place.
+      gsap.set(words, { y: '100%', opacity: 0 });
 
-      // Organic sequential wave rise and illumination
-      tl.to(words, {
+      gsap.to(words, {
         y: '0%',
         opacity: 1,
-        filter: 'blur(0px)',
-        stagger: {
-          each: 0.08,
-          from: 'start',
+        stagger: { each: 0.03, from: 'start' },
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: container,
+          start: 'top 85%',
+          end: 'bottom 25%',
+          scrub: 0.6,
         },
-        ease: 'power2.out',
-        duration: 1.5,
       });
 
-      // Ambient radial glow pulsation on scroll
-      tl.fromTo(
+      // ─── Ambient glow trigger ─────────────────────────────────────────────────
+      gsap.fromTo(
         '.manifesto-glow',
         { scale: 0.85, opacity: 0.3 },
-        { scale: 1.3, opacity: 0.8, ease: 'sine.inOut', duration: 1.5 },
-        0
+        {
+          scale: 1.3,
+          opacity: 0.8,
+          ease: 'sine.inOut',
+          scrollTrigger: {
+            trigger: container,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.6,
+          },
+        }
       );
     }, container);
 
@@ -81,9 +85,10 @@ export default function CinematicManifesto() {
         className="inline-block overflow-hidden align-top mr-[0.28em] pb-[0.12em] leading-none"
       >
         <span
-          className={`manifesto-word inline-block will-change-transform ${
+          className={`manifesto-word inline-block ${
             isItalic ? 'italic text-accent' : ''
           }`}
+          style={{ willChange: 'transform, opacity' }}
         >
           {word}
         </span>
@@ -95,15 +100,15 @@ export default function CinematicManifesto() {
     <section
       ref={containerRef}
       id="manifesto"
-      className="relative z-20 w-full h-[180vh] -mt-12 sm:-mt-16 lg:-mt-20 bg-brown-900 text-cream rounded-t-[3.5rem] sm:rounded-t-[5rem] lg:rounded-t-[6.5rem]"
+      className="relative w-full h-[240vh] sm:h-[210vh] md:h-[185vh] lg:h-[160vh] bg-[#120B08] text-cream -mt-8 sm:-mt-12 rounded-t-[2rem] sm:rounded-t-[3rem] shadow-[0_-24px_60px_rgba(0,0,0,0.55)]"
     >
       {/* Sticky / Pinned Fullscreen Stage */}
       <div
         ref={pinRef}
-        className="relative w-full h-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none bg-radial-obsidian rounded-t-[3.5rem] sm:rounded-t-[5rem] lg:rounded-t-[6.5rem] shadow-[0_-25px_50px_rgba(44,24,16,0.35)]"
+        className="relative w-full h-screen overflow-hidden flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none bg-radial-obsidian"
       >
         {/* Subtle Ambient Radial Amber Glow */}
-        <div className="manifesto-glow absolute inset-0 bg-radial-glow pointer-events-none transition-transform duration-700 will-change-transform" />
+        <div className="manifesto-glow absolute inset-0 bg-radial-glow pointer-events-none will-change-transform" />
 
         {/* Minimalist Micro-Metadata: Top Row */}
         <div className="relative z-10 flex items-center justify-between font-mono text-[11px] sm:text-xs tracking-[0.25em] text-[#C8956C]/80 uppercase">

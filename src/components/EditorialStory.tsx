@@ -1,14 +1,10 @@
 import { useRef, useEffect, useState } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { gsap, ScrollTrigger } from '../lib/gsap';
 import { Compass, Clock, VolumeX, ArrowUpRight } from 'lucide-react';
 
 import qualityCoffeeImg from '../assets/images/features/quality-coffee.jpg';
 import freshDeliciousImg from '../assets/images/features/fresh-delicious.jpg';
 import cozyAtmosphereImg from '../assets/images/features/cozy-atmosphere.jpg';
-
-gsap.registerPlugin(ScrollTrigger);
-
 interface Chapter {
   id: string;
   index: string;

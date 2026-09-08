@@ -1,8 +1,5 @@
 import { useEffect, type RefObject } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
+import { gsap } from '../lib/gsap';
 
 export function useParallax(
   ref: RefObject<HTMLElement | null>,

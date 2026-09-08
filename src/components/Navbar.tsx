@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLenis } from '../context/LenisContext';
 import { NavLogo } from './navbar/NavLogo';
 import { CompactActions } from './navbar/CompactActions';
@@ -29,6 +29,23 @@ export default function Navbar() {
     return () => mql.removeEventListener('change', handler);
   }, []);
 
+  // Sync isScrolled with Lenis's interpolated scroll position to prevent
+  // flickering caused by Framer Motion reading native window.scrollY
+  useEffect(() => {
+    if (!lenis) return;
+    const handler = ({ scroll }: { scroll: number }) => {
+      setIsScrolled(prev => {
+        if (!prev && scroll > 80) return true;
+        if (prev && scroll < 35) return false;
+        return prev;
+      });
+    };
+    lenis.on('scroll', handler);
+    return () => {
+      lenis.off('scroll', handler);
+    };
+  }, [lenis]);
+
   const handleDrawerOpen = useCallback(() => {
     setIsDrawerOpen(true);
     lenis?.stop();
@@ -39,17 +56,7 @@ export default function Navbar() {
     lenis?.start();
   }, [lenis]);
 
-  // Monitor scroll position with Framer Motion for 60fps performance
-  const { scrollY } = useScroll();
 
-  // Scroll hysteresis to eliminate threshold bouncing & jitter
-  useMotionValueEvent(scrollY, 'change', (latest) => {
-    if (!isScrolled && latest > 80) {
-      setIsScrolled(true);
-    } else if (isScrolled && latest < 35) {
-      setIsScrolled(false);
-    }
-  });
 
   const navLinks = [
     { label: 'Home', href: '#hero' },
