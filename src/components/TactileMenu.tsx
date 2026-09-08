@@ -1,6 +1,6 @@
 import { useRef, useState, type MouseEvent } from 'react';
 import { Plus, Check, Sparkles, ArrowRight } from 'lucide-react';
-import { gsap } from 'gsap';
+import { gsap } from '../lib/gsap';
 
 import cappuccinoCup from '../assets/images/hero/cappuccino-cup.webp';
 import coldbrewGlass from '../assets/images/hero/coldbrew-glass.webp';
@@ -208,7 +208,7 @@ function TactileCard({ item, onAdd }: { item: TactileItem; onAdd: (name: string)
           src={item.backdropImage}
           alt=""
           aria-hidden="true"
-          className="absolute z-0 w-24 sm:w-28 opacity-40 filter blur-[3px] -left-2 top-8 pointer-events-none select-none transition-transform duration-300"
+          className="absolute z-0 w-24 sm:w-28 opacity-40 filter blur-[3px] -left-2 top-8 pointer-events-none select-none will-change-transform"
         />
 
         {/* Ambient Product Glow Behind Hero */}
@@ -219,7 +219,7 @@ function TactileCard({ item, onAdd }: { item: TactileItem; onAdd: (name: string)
           ref={heroRef}
           src={item.heroImage}
           alt={item.name}
-          className="relative z-10 w-52 sm:w-60 max-w-none filter drop-shadow-[0_25px_30px_rgba(0,0,0,0.65)] select-none transition-transform duration-300 pointer-events-auto"
+          className="relative z-10 w-52 sm:w-60 max-w-none filter drop-shadow-[0_25px_30px_rgba(0,0,0,0.65)] select-none will-change-transform pointer-events-auto"
         />
 
         {/* Layer 20: Foreground orbiting micro-element (closest to viewer, dynamic) */}
@@ -228,7 +228,7 @@ function TactileCard({ item, onAdd }: { item: TactileItem; onAdd: (name: string)
           src={item.foregroundImage}
           alt=""
           aria-hidden="true"
-          className="absolute z-20 w-16 sm:w-20 filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] -right-3 bottom-4 pointer-events-none select-none"
+          className="absolute z-20 w-16 sm:w-20 filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] -right-3 bottom-4 pointer-events-none select-none will-change-transform"
         />
       </div>
 
