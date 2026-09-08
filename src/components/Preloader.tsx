@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from '../lib/gsap';
 import { useGSAP } from '@gsap/react';
 
 // Import the actual transparent cutout WebP assets used in the Hero section

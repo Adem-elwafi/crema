@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense, useEffect } from 'react'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ScrollTrigger } from './lib/gsap';
 import { LenisProvider } from './context/LenisProvider'
 import Preloader from './components/Preloader'
 import Navbar from './components/Navbar'
