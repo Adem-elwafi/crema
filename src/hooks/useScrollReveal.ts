@@ -1,5 +1,5 @@
 import { useEffect, type RefObject } from 'react';
-import { gsap } from 'gsap';
+import { gsap } from '../lib/gsap';
 
 interface ScrollRevealOptions {
   y?: number;        // default 60
@@ -41,9 +41,9 @@ export function useScrollReveal(
 
     // Apply initial hidden state
     if (targets instanceof NodeList) {
-      gsap.set(targets, { y, x, opacity, visibility: 'hidden' });
+      gsap.set(targets, { y, x, opacity });
     } else {
-      gsap.set(targets, { y, x, opacity, visibility: 'hidden' });
+      gsap.set(targets, { y, x, opacity });
     }
 
     let revealTween: gsap.core.Tween | gsap.core.Timeline | null = null;
@@ -54,7 +54,6 @@ export function useScrollReveal(
         y: 0,
         x: 0,
         opacity: 1,
-        visibility: 'visible',
         duration,
         delay,
         stagger,
@@ -74,15 +73,18 @@ export function useScrollReveal(
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px 0px -10% 0px' }
+      { threshold: 0.1, rootMargin: '0px 0px -5% 0px' }
     );
 
     observer.observe(el);
 
     return () => {
       observer.disconnect();
-      if (revealTween) revealTween.kill();
-      gsap.set(targets, { clearProps: 'all' });
+      if (revealTween) {
+        revealTween.kill();
+      } else {
+        gsap.set(targets, { clearProps: 'all' });
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, optionsKey]);
