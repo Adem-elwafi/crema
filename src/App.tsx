@@ -25,14 +25,16 @@ function App() {
 
   return (
     <LenisProvider paused={!isPreloaderComplete}>
-      <div className="bg-brown-900 text-brown-900 font-body overflow-x-hidden">
+      <div className="bg-brown-900 text-brown-900 font-body overflow-x-clip">
         {!isPreloaderComplete && <Preloader onComplete={() => {
           setIsPreloaderComplete(true);
           setTimeout(() => ScrollTrigger.refresh(), 200);
         }} />}
 
         <Navbar />
-        <HeroSlider isPaused={!isPreloaderComplete} />
+        <div className="sticky top-0 z-0 h-screen w-full">
+          <HeroSlider isPaused={!isPreloaderComplete} />
+        </div>
         <Suspense fallback={null}>
           <LazyContentReady>
             <CinematicManifesto />
