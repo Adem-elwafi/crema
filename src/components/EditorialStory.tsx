@@ -1,15 +1,18 @@
-import { useRef, useEffect, useState } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { gsap, ScrollTrigger } from '../lib/gsap';
-import { Compass, Clock, VolumeX, ArrowUpRight } from 'lucide-react';
+import { Compass, Clock, VolumeX, ArrowUpRight, X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 import qualityCoffeeImg from '../assets/images/features/quality-coffee.jpg';
 import freshDeliciousImg from '../assets/images/features/fresh-delicious.jpg';
 import cozyAtmosphereImg from '../assets/images/features/cozy-atmosphere.jpg';
-interface Chapter {
+import singleCoffeeBean from '../assets/images/hero/single-coffee-bean.webp';
+
+export interface Chapter {
   id: string;
   index: string;
-  tag: string;
+  badge: string;
   title: string;
+  previewText: string[];
   quote: string;
   dropCap: string;
   story: string;
@@ -19,12 +22,18 @@ interface Chapter {
   icon: typeof Compass;
 }
 
-const CHAPTERS: Chapter[] = [
+export const CHAPTERS: Chapter[] = [
   {
     id: 'sourcing',
     index: '01',
-    tag: 'ORIGIN & HARVEST',
+    badge: 'THE HEIRLOOM HARVEST',
     title: 'The Monastic Sourcing',
+    previewText: [
+      'Small runs. No conveyor belts, just',
+      'slow simmering, constant taste',
+      'checks, and Doug hovering like it',
+      'owes him money.',
+    ],
     quote: 'Coffee is not roasted to be swallowed; it is crafted to arrest the velocity of the morning.',
     dropCap: 'E',
     story:
@@ -43,8 +52,15 @@ const CHAPTERS: Chapter[] = [
   {
     id: 'bakery',
     index: '02',
-    tag: 'ARTISANAL PATISSERIE',
+    badge: 'THE DAWN OVEN',
     title: 'The Dawn Oven',
+    previewText: [
+      'Small runs. Precision heat.',
+      'Single-origin micro-roasting at',
+      'sunrise. Every bean is captured',
+      'at its flavor peak by Doug, who',
+      'oversees each crack.',
+    ],
     quote: 'Long before the city street lamps flicker out, the wild sourdough cultures begin their slow exhale.',
     dropCap: 'B',
     story:
@@ -56,15 +72,21 @@ const CHAPTERS: Chapter[] = [
       { label: 'FERMENT', value: '72H SLOW SOURDOUGH CULT' },
       { label: 'BUTTER', value: '84% AOP NORMANDY BUTTER' },
       { label: 'LAMINATION', value: '81 CRISP FLAKY LAYERS' },
-      { label: 'FLOUR', value: 'STONEGROUND ANCIENT SPELT' },
+      { label: 'ROAST', value: 'ANALOG CAST-IRON DRUM' },
     ],
     icon: Clock,
   },
   {
     id: 'space',
     index: '03',
-    tag: 'ACOUSTIC ARCHITECTURE',
+    badge: 'THE ACOUSTIC SANCTUARY',
     title: 'The Acoustic Sanctuary',
+    previewText: [
+      'Real fruit. Fresh from local growers.',
+      'No powders. No synthetic shortcuts.',
+      'Hand-selected, sliced, spiced, and',
+      'distilled in unhurried rhythm.',
+    ],
     quote: 'We constructed not just a café, but a physical refusal of contemporary noise and hurry.',
     dropCap: 'S',
     story:
@@ -83,243 +105,501 @@ const CHAPTERS: Chapter[] = [
 ];
 
 export default function EditorialStory() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const leftImagesRef = useRef<HTMLDivElement>(null);
-  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  const containerRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+  // Default resting state is 1.0 (Step 02 centered)
+  const [dialProgress, setDialProgress] = useState<number>(1);
+  const targetProgress = useRef<number>(1);
+  const currentProgress = useRef<number>(1);
+  const animFrameId = useRef<number | null>(null);
 
-    const ctx = gsap.context(() => {
-      // Create ScrollTriggers for each chapter on desktop
-      const chapterEls = gsap.utils.toArray<HTMLElement>('.editorial-chapter');
+  // Active step integer (0, 1, 2)
+  const activeStep = Math.min(2, Math.max(0, Math.round(dialProgress)));
 
-      chapterEls.forEach((el, index) => {
-        ScrollTrigger.create({
-          trigger: el,
-          start: 'top 55%',
-          end: 'bottom 55%',
-          onEnter: () => setActiveChapterIndex(index),
-          onEnterBack: () => setActiveChapterIndex(index),
-        });
-      });
-    }, section);
+  // Drag interaction state
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartProgress = useRef(1);
 
-    return () => ctx.revert();
+  // Monograph Modal state
+  const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
+
+  // Smooth lerp for dial movements
+  const animateDial = useCallback(() => {
+    const diff = targetProgress.current - currentProgress.current;
+    if (Math.abs(diff) > 0.001) {
+      currentProgress.current += diff * 0.14;
+      setDialProgress(currentProgress.current);
+      animFrameId.current = requestAnimationFrame(animateDial);
+    } else {
+      currentProgress.current = targetProgress.current;
+      setDialProgress(targetProgress.current);
+      animFrameId.current = null;
+    }
   }, []);
 
-  const activeChapter = CHAPTERS[activeChapterIndex];
+  const setStepTarget = useCallback(
+    (target: number) => {
+      const clamped = Math.max(0, Math.min(2, target));
+      targetProgress.current = clamped;
+      if (animFrameId.current === null) {
+        animFrameId.current = requestAnimationFrame(animateDial);
+      }
+    },
+    [animateDial]
+  );
+
+  // GSAP ScrollTrigger pinning for desktop scroll experience:
+  // Starts when section is pinned. As user scrolls down, dial progresses from 1 (Step 02) to 2 (Step 03).
+  // If user scrolls up from the top, it unpins or traverses to Step 01.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const ctx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: container,
+        start: 'top top',
+        end: '+=1400',
+        pin: true,
+        scrub: 0.8,
+        anticipatePin: 1,
+        onUpdate: (self) => {
+          if (!isDragging.current) {
+            // self.progress goes 0 -> 1.
+            // When arriving at section (progress = 0), dial is at 1.0 (Step 02).
+            // As user scrolls down, progress goes from 1.0 -> 2.0 (Step 03).
+            // If scrolled in reverse, goes smoothly back to 1.0.
+            const p = 1.0 + self.progress * 1.0;
+            targetProgress.current = p;
+            currentProgress.current = p;
+            setDialProgress(p);
+          }
+        },
+      });
+    }, container);
+
+    return () => {
+      ctx.revert();
+      if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
+    };
+  }, []);
+
+  // Pointer / Touch drag handling for physical dial feel
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button, a')) return;
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartProgress.current = currentProgress.current;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const deltaX = e.clientX - dragStartX.current;
+    const trackWidth = trackRef.current?.offsetWidth || window.innerWidth;
+    // Dragging left moves dial forward, dragging right moves dial backward
+    const stepDelta = -(deltaX / (trackWidth * 0.35));
+    const nextProgress = Math.max(-0.15, Math.min(2.15, dragStartProgress.current + stepDelta));
+    targetProgress.current = nextProgress;
+    currentProgress.current = nextProgress;
+    setDialProgress(nextProgress);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    const snapped = Math.round(Math.max(0, Math.min(2, currentProgress.current)));
+    setStepTarget(snapped);
+  };
+
+  // Keyboard accessibility
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setStepTarget(Math.max(0, activeStep - 1));
+      } else if (e.key === 'ArrowRight') {
+        setStepTarget(Math.min(2, activeStep + 1));
+      } else if (e.key === 'Escape' && selectedMonograph) {
+        setSelectedMonograph(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeStep, selectedMonograph, setStepTarget]);
+
+  // Geometry along the curved dome guideline:
+  // Center is X = 50%, Y = crestY.
+  // When delta = 0 (active step), it sits precisely at the crest.
+  // When delta = -1 (left), X ~ 17%, slopes down.
+  // When delta = +1 (right), X ~ 83%, slopes down.
+  const calculateGeometry = (stepIndex: number) => {
+    const delta = stepIndex - dialProgress;
+    const xPct = 50 + delta * 33;
+    const normalizedDist = Math.abs(delta);
+
+    // Parabolic droop matching the SVG dome curve:
+    // delta = 0 => 0px droop (crest)
+    // delta = ±1 => ~48px droop
+    // delta = ±1.5 => ~108px droop
+    const yDroopPx = Math.pow(delta, 2) * 48;
+
+    // Tangent slope angle (left slopes down towards left, right slopes down towards right)
+    const rotationDeg = delta * 8.5;
+
+    // Center step is larger and sharper; slopes scale down
+    const scale = Math.max(0.68, 1.0 - normalizedDist * 0.26);
+
+    // Center step is full opacity; slopes are dimmed previews
+    const opacity = Math.max(0, Math.min(1, 1.0 - normalizedDist * 0.58));
+    const isCenter = Math.abs(delta) < 0.35;
+
+    return { delta, xPct, yDroopPx, rotationDeg, scale, opacity, isCenter };
+  };
+
+  // Coffee Bean marker position:
+  // Glides smoothly along the curve, pinning immediately to the right of the active crest number
+  const beanGeometry = useMemo(() => {
+    // Relative offset from current dialProgress:
+    // Sits at current center + ~9% width to place it right beside the center numeral
+    const beanXPct = 50 + 9.5;
+    const deltaFromCrest = (beanXPct - 50) / 33;
+    const beanYDroopPx = Math.pow(deltaFromCrest, 2) * 48;
+    // Subtle rotation roll as the dial turns
+    const rollAngle = 28 + (dialProgress - 1) * 35;
+    return { beanXPct, beanYDroopPx, rollAngle };
+  }, [dialProgress]);
 
   return (
     <section
-      ref={sectionRef}
+      ref={containerRef}
       id="why-us"
-      className="relative w-full bg-[#FDF8F3] text-brown-900 overflow-hidden"
+      className="relative w-full min-h-screen bg-[#140C08] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-10 sm:py-14"
+      style={{
+        background:
+          'radial-gradient(ellipse at 50% 36%, #28170F 0%, #160D08 55%, #0D0704 100%)',
+      }}
     >
       {/* Anchor shim for legacy #about links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
 
-      {/* DESKTOP SPLIT EDITORIAL VIEW (>= 1024px) */}
-      <div className="hidden lg:flex w-full min-h-screen">
-        {/* Left Column: Pinned Sticky Visual Portal (52% width) */}
-        <div className="w-[52%] h-screen sticky top-0 p-8 xl:p-12 flex flex-col justify-between overflow-hidden border-r border-brown-200/50 bg-[#F5EDE4]/60">
-          {/* Top Stamp */}
-          <div className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.25em] text-accent">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-accent" />
-              <span>03 / EDITORIAL ARCHIVE</span>
-            </div>
-            <span className="text-brown-400">CHAPTER {activeChapter.index} OF 03</span>
-          </div>
+      {/* Atmospheric warm ambient glow & vignettes */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_36%,rgba(218,165,96,0.12)_0%,rgba(0,0,0,0.65)_85%)]" />
+      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#140C08] to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#140C08] to-transparent pointer-events-none" />
 
-          {/* Central Image Canvas with Morphing Transitions */}
-          <div
-            ref={leftImagesRef}
-            className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl my-auto border border-brown-900/10 group"
+      {/* SECTION HEADLINE */}
+      <header className="relative z-20 text-center px-6 max-w-5xl mx-auto pt-2 sm:pt-4">
+        <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-[3.2rem] text-[#F5EDE4] font-normal tracking-[0.16em] uppercase leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.85)]">
+          Our Journey of Distillation
+        </h2>
+      </header>
+
+      {/* INTERACTIVE ROTATING DIAL CANVAS */}
+      <div
+        ref={trackRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="relative z-10 w-full h-[540px] sm:h-[580px] md:h-[620px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-hidden my-auto"
+      >
+        {/* SVG DELICATE DOTTED GOLD GUIDELINE DOME */}
+        <div className="absolute inset-x-0 top-[270px] sm:top-[285px] md:top-[300px] -translate-y-1/2 h-[120px] pointer-events-none z-0">
+          <svg
+            className="w-full h-full overflow-visible"
+            viewBox="0 0 1200 120"
+            preserveAspectRatio="none"
+            fill="none"
           >
-            {CHAPTERS.map((chap, idx) => (
-              <div
-                key={chap.id}
-                style={{ willChange: 'opacity, transform' }}
-                className={`absolute inset-0 transition-[opacity,transform] duration-600 ease-out ${
-                  idx === activeChapterIndex
-                    ? 'opacity-100 scale-100 filter-none pointer-events-auto'
-                    : 'opacity-0 scale-[1.02] pointer-events-none'
-                }`}
-              >
-                <img
-                  src={chap.image}
-                  alt={chap.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brown-900/80 via-transparent to-black/10" />
+            <defs>
+              <linearGradient id="goldDottedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#C8956C" stopOpacity="0.12" />
+                <stop offset="15%" stopColor="#D4A373" stopOpacity="0.45" />
+                <stop offset="50%" stopColor="#F5EDE4" stopOpacity="0.85" />
+                <stop offset="85%" stopColor="#D4A373" stopOpacity="0.45" />
+                <stop offset="100%" stopColor="#C8956C" stopOpacity="0.12" />
+              </linearGradient>
+            </defs>
+            {/* Parabolic dome: starts at (0, 80), crests at (600, 16), ends at (1200, 80) */}
+            <path
+              d="M 0 80 Q 600 16 1200 80"
+              stroke="url(#goldDottedGrad)"
+              strokeWidth="1.8"
+              strokeDasharray="2.5 6.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
 
-                {/* Floating Chapter Badge */}
-                <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest text-brown-900 shadow-sm uppercase">
-                  {chap.tag}
-                </div>
-
-                {/* Technical Spec Sheet Overlay at bottom of photo */}
-                <div className="absolute bottom-6 inset-x-6 grid grid-cols-2 gap-3 p-4 rounded-2xl bg-[#1C100B]/85 backdrop-blur-md border border-[#C8956C]/20 text-cream">
-                  {chap.specs.map((spec, sIdx) => (
-                    <div key={sIdx} className="font-mono">
-                      <span className="text-[10px] text-accent/80 tracking-wider block uppercase">
-                        {spec.label}
-                      </span>
-                      <span className="text-xs text-cream/90 font-medium tracking-wide">
-                        {spec.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom Footnote */}
-          <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.2em] text-brown-400">
-            <span>CREMA MONOGRAPH VOL. IV</span>
-            <span>UNCOMPROMISED DISCIPLINE</span>
+        {/* ROASTED COFFEE BEAN PIN MARKER */}
+        <div
+          className="absolute z-20 pointer-events-none transition-transform duration-100 ease-out will-change-transform"
+          style={{
+            left: `${beanGeometry.beanXPct}%`,
+            top: `calc(272px + ${beanGeometry.beanYDroopPx}px)`,
+            transform: `translate(-50%, -50%) rotate(${beanGeometry.rollAngle}deg)`,
+          }}
+        >
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[4.75rem] md:h-[4.75rem]">
+            <img
+              src={singleCoffeeBean}
+              alt="Roasted Coffee Bean Marker"
+              className="w-full h-full object-contain filter drop-shadow-[0_12px_18px_rgba(0,0,0,0.9)] drop-shadow-[0_0_14px_rgba(218,165,96,0.45)]"
+              draggable={false}
+            />
           </div>
         </div>
 
-        {/* Right Column: Scrolling Narrative Track (48% width) */}
-        <div className="w-[48%] px-10 xl:px-16 py-20 flex flex-col">
-          {CHAPTERS.map((chap, idx) => (
+        {/* THREE WIREFRAME NUMBERS & NARRATIVE BLOCKS (01, 02, 03) */}
+        {CHAPTERS.map((chap, idx) => {
+          const geo = calculateGeometry(idx);
+
+          return (
             <div
               key={chap.id}
-              className={`editorial-chapter min-h-[90vh] flex flex-col justify-center relative ${
-                idx !== CHAPTERS.length - 1 ? 'mb-32' : 'mb-16'
+              onClick={() => {
+                if (idx !== activeStep) {
+                  setStepTarget(idx);
+                }
+              }}
+              style={{
+                left: `${geo.xPct}%`,
+                top: `calc(280px + ${geo.yDroopPx}px)`,
+                transform: `translate(-50%, -50%) rotate(${geo.rotationDeg}deg) scale(${geo.scale})`,
+                opacity: geo.opacity,
+                willChange: 'transform, opacity',
+              }}
+              className={`absolute flex flex-col items-center select-none transition-opacity duration-300 ${
+                geo.isCenter
+                  ? 'z-30 cursor-default'
+                  : 'z-10 cursor-pointer hover:opacity-70'
               }`}
             >
-              {/* Aggressive Overlapping Chapter Outline Index */}
-              <div className="font-display font-black text-[7rem] xl:text-[9rem] leading-none text-outline-brown opacity-25 select-none -mb-10 -ml-4 pointer-events-none">
-                {chap.index}
+              {/* CREAM BADGE (Prominently rests above the active number) */}
+              <div
+                className={`mb-3 transition-all duration-300 ${
+                  geo.isCenter
+                    ? 'opacity-100 translate-y-0 scale-100'
+                    : 'opacity-0 translate-y-2 pointer-events-none scale-90'
+                }`}
+              >
+                <div className="bg-[#F5EDE4] text-[#1E110A] px-4 py-1 sm:px-5 sm:py-1.5 rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.7)] font-mono text-[11px] sm:text-xs font-bold tracking-[0.22em] uppercase whitespace-nowrap border border-[#FAF3EB]/50">
+                  {chap.badge}
+                </div>
               </div>
 
-              {/* Tag & Subtitle */}
-              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.25em] text-accent mb-3 font-semibold">
-                <chap.icon size={16} />
-                <span>{chap.tag}</span>
-              </div>
-
-              {/* Headline */}
-              <h3 className="font-display text-4xl xl:text-5xl font-bold text-brown-900 leading-tight mb-6">
-                {chap.title}
-              </h3>
-
-              {/* Editorial Quote */}
-              <blockquote className="font-display italic text-xl xl:text-2xl text-accent-dark font-medium leading-snug mb-8 border-l-2 border-accent pl-6 py-1">
-                &ldquo;{chap.quote}&rdquo;
-              </blockquote>
-
-              {/* Story Narrative with Drop Cap */}
-              <div className="space-y-4 font-body text-brown-700 leading-relaxed text-base xl:text-lg">
-                <p>
-                  <span className="float-left font-display text-5xl leading-none font-bold text-brown-900 pr-3 pt-1">
-                    {chap.dropCap}
-                  </span>
-                  {chap.story}
-                </p>
-                <p>{chap.storyCont}</p>
-              </div>
-
-              {/* Explore Link */}
-              <div className="mt-8 pt-6 border-t border-brown-200 flex items-center justify-between">
-                <a
-                  href="#menu"
-                  className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] font-semibold text-accent hover:text-accent-dark transition-colors group"
+              {/* WIREFRAME / OUTLINE NUMERAL */}
+              <div className="relative font-sans font-light tracking-tighter leading-none select-none my-0 flex items-center justify-center">
+                <span
+                  style={{
+                    WebkitTextStroke: geo.isCenter
+                      ? '2px #E8C9A0'
+                      : '1.5px rgba(200, 149, 108, 0.42)',
+                    color: 'transparent',
+                    textShadow: geo.isCenter
+                      ? '0 0 28px rgba(232, 201, 160, 0.35)'
+                      : 'none',
+                  }}
+                  className={`block text-[6.5rem] sm:text-[8.5rem] md:text-[10.5rem] lg:text-[11.5rem] font-medium transition-all duration-300`}
                 >
-                  <span>EXPLORE TASTING NOTES</span>
-                  <ArrowUpRight
-                    size={16}
-                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
-                  />
-                </a>
-                <span className="font-mono text-xs text-brown-400">
-                  {idx + 1} / 3
+                  {chap.index}
                 </span>
               </div>
+
+              {/* STORY DESCRIPTION UNDERNEATH */}
+              <div
+                className={`w-[260px] sm:w-[320px] md:w-[380px] text-center transition-all duration-300 ${
+                  geo.isCenter
+                    ? 'mt-4 opacity-100 translate-y-0 pointer-events-auto'
+                    : 'mt-3 opacity-60 scale-95 pointer-events-none'
+                }`}
+              >
+                {/* Active story text or faint preview lines */}
+                <div
+                  className={`font-body text-[#F5EDE4] leading-relaxed mx-auto ${
+                    geo.isCenter
+                      ? 'text-sm sm:text-base md:text-[1.0625rem]'
+                      : 'text-xs sm:text-sm text-[#E8C9A0]/75'
+                  }`}
+                >
+                  {chap.previewText.map((line, lIdx) => (
+                    <span key={lIdx} className="block">
+                      {line}
+                    </span>
+                  ))}
+                </div>
+
+                {/* "LEARN MORE" ACTION FOR CENTER ACTIVE STEP */}
+                {geo.isCenter && (
+                  <div className="mt-5 sm:mt-6 flex flex-col items-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMonograph(chap);
+                      }}
+                      className="group inline-flex items-center gap-2 font-mono text-xs sm:text-sm uppercase tracking-[0.25em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-all duration-300 border-b border-[#C8956C]/60 hover:border-[#FDF8F3] pb-1 cursor-pointer"
+                    >
+                      <span>LEARN MORE</span>
+                      <ArrowUpRight
+                        size={14}
+                        className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                      />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* FOOTER CONTROLS & VINTAGE DIAL STEP INDICATORS */}
+      <footer className="relative z-20 flex items-center justify-between px-6 sm:px-12 max-w-4xl mx-auto w-full pt-2">
+        {/* Prev Arrow */}
+        <button
+          onClick={() => setStepTarget(Math.max(0, activeStep - 1))}
+          disabled={activeStep === 0}
+          aria-label="Previous step"
+          className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
+            activeStep === 0
+              ? 'opacity-20 cursor-not-allowed'
+              : 'hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer'
+          }`}
+        >
+          <ChevronLeft size={18} />
+        </button>
+
+        {/* Vintage Dial Indicators */}
+        <div className="flex items-center gap-3">
+          {CHAPTERS.map((chap, i) => (
+            <button
+              key={chap.id}
+              onClick={() => setStepTarget(i)}
+              className="group flex items-center gap-2 p-1 cursor-pointer"
+              aria-label={`Jump to step ${chap.index}`}
+            >
+              <span
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === activeStep
+                    ? 'w-8 bg-[#E8C9A0] shadow-[0_0_8px_rgba(232,201,160,0.6)]'
+                    : 'w-2 bg-[#C8956C]/30 group-hover:bg-[#C8956C]/60'
+                }`}
+              />
+            </button>
           ))}
         </div>
-      </div>
 
-      {/* MOBILE / TABLET STACKED MAGAZINE VIEW (< 1024px) */}
-      <div className="lg:hidden px-6 sm:px-10 py-20 space-y-24">
-        {/* Header Intro */}
-        <div className="text-center max-w-xl mx-auto mb-12">
-          <span className="font-mono text-xs uppercase tracking-[0.25em] text-accent font-semibold block mb-2">
-            03 / EDITORIAL ARCHIVE
-          </span>
-          <h2 className="font-display text-3xl sm:text-4xl text-brown-900 font-bold">
-            The Philosophy in Three Chapters
-          </h2>
-        </div>
+        {/* Next Arrow */}
+        <button
+          onClick={() => setStepTarget(Math.min(2, activeStep + 1))}
+          disabled={activeStep === 2}
+          aria-label="Next step"
+          className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
+            activeStep === 2
+              ? 'opacity-20 cursor-not-allowed'
+              : 'hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer'
+          }`}
+        >
+          <ChevronRight size={18} />
+        </button>
+      </footer>
 
-        {CHAPTERS.map((chap) => (
-          <article
-            key={chap.id}
-            className="rounded-3xl bg-cream-dark/60 border border-brown-200/60 p-6 sm:p-8 overflow-hidden shadow-sm"
+      {/* EDITORIAL MONOGRAPH ARCHIVE MODAL */}
+      {selectedMonograph && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 md:p-10 bg-black/85 backdrop-blur-md animate-fade-in"
+          onClick={() => setSelectedMonograph(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#1C110B] border border-[#C8956C]/30 text-[#FDF8F3] shadow-[0_25px_80px_rgba(0,0,0,0.9)] p-6 sm:p-10 flex flex-col md:flex-row gap-8 items-stretch"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Outline Index */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-display text-5xl font-black text-outline-brown opacity-40">
-                {chap.index}
-              </span>
-              <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">
-                {chap.tag}
-              </span>
-            </div>
-
-            {/* Photo */}
-            <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-md mb-6 relative">
-              <img
-                src={chap.image}
-                alt={chap.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-brown-900/60 via-transparent to-transparent" />
-            </div>
-
-            {/* Title */}
-            <h3 className="font-display text-2xl sm:text-3xl font-bold text-brown-900 mb-4">
-              {chap.title}
-            </h3>
-
-            {/* Quote */}
-            <blockquote className="font-display italic text-lg text-accent-dark font-medium leading-snug mb-6 border-l-2 border-accent pl-4">
-              &ldquo;{chap.quote}&rdquo;
-            </blockquote>
-
-            {/* Story */}
-            <p className="font-body text-brown-700 text-sm sm:text-base leading-relaxed mb-6">
-              {chap.dropCap + chap.story}
-            </p>
-
-            {/* Mobile Specs */}
-            <div className="grid grid-cols-2 gap-2 p-4 rounded-xl bg-brown-900 text-cream font-mono text-[11px] mb-6">
-              {chap.specs.map((spec, sIdx) => (
-                <div key={sIdx}>
-                  <span className="text-[10px] text-accent block uppercase">
-                    {spec.label}
-                  </span>
-                  <span className="text-cream/90">{spec.value}</span>
-                </div>
-              ))}
-            </div>
-
-            <a
-              href="#menu"
-              className="inline-flex items-center gap-2 text-accent font-semibold text-xs font-mono uppercase tracking-widest hover:text-accent-dark"
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedMonograph(null)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-[#FDF8F3] transition-colors z-20 cursor-pointer"
+              aria-label="Close monograph"
             >
-              <span>EXPERIENCE THE CRAFT</span>
-              <ArrowUpRight size={14} />
-            </a>
-          </article>
-        ))}
-      </div>
+              <X size={20} />
+            </button>
+
+            {/* Left: High-Res Archive Photography */}
+            <div className="w-full md:w-1/2 flex flex-col justify-between">
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mb-4">
+                <img
+                  src={selectedMonograph.image}
+                  alt={selectedMonograph.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+                <div className="absolute top-4 left-4 bg-[#F5EDE4] text-brown-900 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest uppercase">
+                  {selectedMonograph.badge}
+                </div>
+              </div>
+
+              {/* Technical Specs */}
+              <div className="grid grid-cols-2 gap-2 p-3.5 rounded-xl bg-black/40 border border-white/5 font-mono text-xs">
+                {selectedMonograph.specs.map((spec, sIdx) => (
+                  <div key={sIdx}>
+                    <span className="text-[10px] text-accent block uppercase tracking-wider">
+                      {spec.label}
+                    </span>
+                    <span className="text-cream/90 font-medium">{spec.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Rich Narrative & Monograph Text */}
+            <div className="w-full md:w-1/2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.25em] text-accent mb-2">
+                  <Sparkles size={14} />
+                  <span>CHAPTER {selectedMonograph.index} OF 03</span>
+                </div>
+
+                <h3 className="font-display text-3xl sm:text-4xl font-bold text-cream mb-4 leading-tight">
+                  {selectedMonograph.title}
+                </h3>
+
+                <blockquote className="font-display italic text-lg sm:text-xl text-[#E8C9A0] font-medium leading-snug mb-6 border-l-2 border-accent pl-4">
+                  &ldquo;{selectedMonograph.quote}&rdquo;
+                </blockquote>
+
+                <div className="space-y-4 font-body text-[#D7CCC8] leading-relaxed text-sm sm:text-base">
+                  <p>
+                    <span className="float-left font-display text-4xl leading-none font-bold text-cream pr-2 pt-0.5">
+                      {selectedMonograph.dropCap}
+                    </span>
+                    {selectedMonograph.story}
+                  </p>
+                  <p>{selectedMonograph.storyCont}</p>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between">
+                <a
+                  href="#menu"
+                  onClick={() => setSelectedMonograph(null)}
+                  className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] font-semibold text-accent hover:text-[#E8C9A0] transition-colors"
+                >
+                  <span>ORDER TASTING FLIGHT</span>
+                  <ArrowUpRight size={14} />
+                </a>
+
+                <span className="font-mono text-xs text-white/40">CREMA ARCHIVE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

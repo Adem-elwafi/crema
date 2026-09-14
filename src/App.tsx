@@ -32,12 +32,22 @@ function App() {
         }} />}
 
         <Navbar />
-        <div className="sticky top-0 z-0 h-screen w-full">
-          <HeroSlider isPaused={!isPreloaderComplete} />
+
+        {/* Hero + Manifesto Stage: Hero is ONLY sticky while Manifesto ascends over it */}
+        <div className="relative w-full">
+          <div className="sticky top-0 z-0 h-screen w-full overflow-hidden">
+            <HeroSlider isPaused={!isPreloaderComplete} />
+          </div>
+          <div className="relative z-10">
+            <Suspense fallback={null}>
+              <CinematicManifesto />
+            </Suspense>
+          </div>
         </div>
+
+        {/* Downstream Sections — completely independent, Hero can never leak here */}
         <Suspense fallback={null}>
           <LazyContentReady>
-            <CinematicManifesto />
             <TactileMenu />
             <EditorialStory />
             <VisitUs />

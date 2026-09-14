@@ -30,23 +30,31 @@ export default function CinematicManifesto() {
             endTrigger: container,
             end: 'top top',
             scrub: true,
+            onLeave: () => {
+              heroEl.style.visibility = 'hidden';
+              heroEl.style.pointerEvents = 'none';
+            },
+            onEnterBack: () => {
+              heroEl.style.visibility = 'visible';
+              heroEl.style.pointerEvents = 'auto';
+            },
           },
         });
       }
 
       // ─── 2. Word reveal: As the card ascends, words glide into place ───────
-      gsap.set(words, { y: '50%', opacity: 0 });
+      gsap.set(words, { y: '100%', opacity: 0 });
 
       gsap.to(words, {
         y: '0%',
         opacity: 1,
-        stagger: { each: 0.02, from: 'start' },
-        ease: 'power2.out',
+        stagger: { each: 0.03, from: 'start' },
+        ease: 'power3.out',
         scrollTrigger: {
           trigger: container,
-          start: 'top 80%',     // Begins as Manifesto starts climbing over Hero
-          end: 'top 15%',       // Finishes right as Manifesto reaches the top
-          scrub: 0.5,
+          start: 'top 55%',     // Begins when Manifesto ascends past lower half of viewport
+          end: 'top top',       // Finishes right as Manifesto reaches the top
+          scrub: 0.8,
           onUpdate: (self) => {
             if (progressLineRef.current) {
               progressLineRef.current.style.transform = `scaleX(${self.progress})`;
