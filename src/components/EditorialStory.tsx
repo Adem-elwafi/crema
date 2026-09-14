@@ -29,10 +29,8 @@ export const CHAPTERS: Chapter[] = [
     badge: 'THE HEIRLOOM HARVEST',
     title: 'The Monastic Sourcing',
     previewText: [
-      'Small runs. No conveyor belts, just',
-      'slow simmering, constant taste',
-      'checks, and Doug hovering like it',
-      'owes him money.',
+      'Small runs. No conveyor belts, just slow simmering,',
+      'constant taste checks, and Doug hovering like it owes him money.',
     ],
     quote: 'Coffee is not roasted to be swallowed; it is crafted to arrest the velocity of the morning.',
     dropCap: 'E',
@@ -55,11 +53,8 @@ export const CHAPTERS: Chapter[] = [
     badge: 'THE DAWN OVEN',
     title: 'The Dawn Oven',
     previewText: [
-      'Small runs. Precision heat.',
-      'Single-origin micro-roasting at',
-      'sunrise. Every bean is captured',
-      'at its flavor peak by Doug, who',
-      'oversees each crack.',
+      'Small runs. Precision heat. Single-origin micro-roasting at sunrise.',
+      'Every bean is captured at its flavor peak by Doug, who oversees each crack.',
     ],
     quote: 'Long before the city street lamps flicker out, the wild sourdough cultures begin their slow exhale.',
     dropCap: 'B',
@@ -82,10 +77,8 @@ export const CHAPTERS: Chapter[] = [
     badge: 'THE ACOUSTIC SANCTUARY',
     title: 'The Acoustic Sanctuary',
     previewText: [
-      'Real fruit. Fresh from local growers.',
-      'No powders. No synthetic shortcuts.',
-      'Hand-selected, sliced, spiced, and',
-      'distilled in unhurried rhythm.',
+      'Real fruit. Fresh from local growers. No powders. No synthetic shortcuts.',
+      'Hand-selected, sliced, spiced, and distilled in unhurried rhythm.',
     ],
     quote: 'We constructed not just a café, but a physical refusal of contemporary noise and hurry.',
     dropCap: 'S',
@@ -107,8 +100,9 @@ export const CHAPTERS: Chapter[] = [
 export default function EditorialStory() {
   const containerRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const scrollTriggerInstance = useRef<ScrollTrigger | null>(null);
 
-  // Default resting state is 1.0 (Step 02 centered)
+  // Default resting position: Step 02 (index 1)
   const [dialProgress, setDialProgress] = useState<number>(1);
   const targetProgress = useRef<number>(1);
   const currentProgress = useRef<number>(1);
@@ -117,7 +111,7 @@ export default function EditorialStory() {
   // Active step integer (0, 1, 2)
   const activeStep = Math.min(2, Math.max(0, Math.round(dialProgress)));
 
-  // Drag interaction state
+  // Drag interaction
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const dragStartProgress = useRef(1);
@@ -125,11 +119,11 @@ export default function EditorialStory() {
   // Monograph Modal state
   const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
 
-  // Smooth lerp for dial movements
+  // Snappy yet smooth spring lerp for dial motion
   const animateDial = useCallback(() => {
     const diff = targetProgress.current - currentProgress.current;
     if (Math.abs(diff) > 0.001) {
-      currentProgress.current += diff * 0.14;
+      currentProgress.current += diff * 0.18; // Crisper, faster interpolation
       setDialProgress(currentProgress.current);
       animFrameId.current = requestAnimationFrame(animateDial);
     } else {
@@ -150,27 +144,24 @@ export default function EditorialStory() {
     [animateDial]
   );
 
-  // GSAP ScrollTrigger pinning for desktop scroll experience:
-  // Starts when section is pinned. As user scrolls down, dial progresses from 1 (Step 02) to 2 (Step 03).
-  // If user scrolls up from the top, it unpins or traverses to Step 01.
+  // Quick-response GSAP ScrollTrigger:
+  // Short distance (+=550px) and fast scrub (0.2s) ensures crisp, swift transitions
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
+      const st = ScrollTrigger.create({
         trigger: container,
         start: 'top top',
-        end: '+=1400',
+        end: '+=550', // Fast & responsive scroll distance
         pin: true,
-        scrub: 0.8,
+        scrub: 0.25, // Snappy tracking without sluggish delay
         anticipatePin: 1,
         onUpdate: (self) => {
           if (!isDragging.current) {
-            // self.progress goes 0 -> 1.
-            // When arriving at section (progress = 0), dial is at 1.0 (Step 02).
-            // As user scrolls down, progress goes from 1.0 -> 2.0 (Step 03).
-            // If scrolled in reverse, goes smoothly back to 1.0.
+            // When arriving at top (progress 0), resting on Step 02 (1.0).
+            // Scrolling down traverses swiftly towards Step 03 (2.0).
             const p = 1.0 + self.progress * 1.0;
             targetProgress.current = p;
             currentProgress.current = p;
@@ -178,6 +169,7 @@ export default function EditorialStory() {
           }
         },
       });
+      scrollTriggerInstance.current = st;
     }, container);
 
     return () => {
@@ -186,7 +178,7 @@ export default function EditorialStory() {
     };
   }, []);
 
-  // Pointer / Touch drag handling for physical dial feel
+  // Pointer drag handling
   const handlePointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('button, a')) return;
     isDragging.current = true;
@@ -199,9 +191,8 @@ export default function EditorialStory() {
     if (!isDragging.current) return;
     const deltaX = e.clientX - dragStartX.current;
     const trackWidth = trackRef.current?.offsetWidth || window.innerWidth;
-    // Dragging left moves dial forward, dragging right moves dial backward
-    const stepDelta = -(deltaX / (trackWidth * 0.35));
-    const nextProgress = Math.max(-0.15, Math.min(2.15, dragStartProgress.current + stepDelta));
+    const stepDelta = -(deltaX / (trackWidth * 0.32));
+    const nextProgress = Math.max(-0.1, Math.min(2.1, dragStartProgress.current + stepDelta));
     targetProgress.current = nextProgress;
     currentProgress.current = nextProgress;
     setDialProgress(nextProgress);
@@ -219,7 +210,7 @@ export default function EditorialStory() {
     setStepTarget(snapped);
   };
 
-  // Keyboard accessibility
+  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
@@ -234,84 +225,78 @@ export default function EditorialStory() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeStep, selectedMonograph, setStepTarget]);
 
-  // Geometry along the curved dome guideline:
-  // Center is X = 50%, Y = crestY.
-  // When delta = 0 (active step), it sits precisely at the crest.
-  // When delta = -1 (left), X ~ 17%, slopes down.
-  // When delta = +1 (right), X ~ 83%, slopes down.
+  // Geometry calculation for the dome arc:
+  // Center is X = 50%, Y = baseline.
+  // Parabolic droop drops ~42px at ±1 step.
   const calculateGeometry = (stepIndex: number) => {
     const delta = stepIndex - dialProgress;
     const xPct = 50 + delta * 33;
     const normalizedDist = Math.abs(delta);
 
-    // Parabolic droop matching the SVG dome curve:
-    // delta = 0 => 0px droop (crest)
-    // delta = ±1 => ~48px droop
-    // delta = ±1.5 => ~108px droop
-    const yDroopPx = Math.pow(delta, 2) * 48;
+    // Parabolic droop matching the SVG guideline
+    const yDroopPx = Math.pow(delta, 2) * 44;
+    // Tangent slope angle
+    const rotationDeg = delta * 8;
 
-    // Tangent slope angle (left slopes down towards left, right slopes down towards right)
-    const rotationDeg = delta * 8.5;
+    // Center active number is 1.0 (with slight scale up to 1.05), side numbers are ~0.65
+    const scale = Math.max(0.65, 1.05 - normalizedDist * 0.4);
 
-    // Center step is larger and sharper; slopes scale down
-    const scale = Math.max(0.68, 1.0 - normalizedDist * 0.26);
-
-    // Center step is full opacity; slopes are dimmed previews
-    const opacity = Math.max(0, Math.min(1, 1.0 - normalizedDist * 0.58));
+    // Active center is 1.0; inactive sides are strictly faint wireframes (0.22)
     const isCenter = Math.abs(delta) < 0.35;
+    const opacity = isCenter ? 1.0 : Math.max(0.08, 0.24 - (normalizedDist - 0.35) * 0.15);
 
     return { delta, xPct, yDroopPx, rotationDeg, scale, opacity, isCenter };
   };
 
-  // Coffee Bean marker position:
-  // Glides smoothly along the curve, pinning immediately to the right of the active crest number
+  // Bean Position tracking along the curve beside the active center numeral
   const beanGeometry = useMemo(() => {
-    // Relative offset from current dialProgress:
-    // Sits at current center + ~9% width to place it right beside the center numeral
-    const beanXPct = 50 + 9.5;
+    // Sits at 50% + 9.5% width, centered on the curve
+    const beanXPct = 50 + 9.2;
     const deltaFromCrest = (beanXPct - 50) / 33;
-    const beanYDroopPx = Math.pow(deltaFromCrest, 2) * 48;
-    // Subtle rotation roll as the dial turns
-    const rollAngle = 28 + (dialProgress - 1) * 35;
+    const beanYDroopPx = Math.pow(deltaFromCrest, 2) * 44;
+    // Roll rotation when dial travels
+    const rollAngle = 26 + (dialProgress - 1) * 40;
     return { beanXPct, beanYDroopPx, rollAngle };
   }, [dialProgress]);
+
+  const activeChapter = CHAPTERS[activeStep];
 
   return (
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full min-h-screen bg-[#140C08] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-10 sm:py-14"
+      className="relative w-full h-screen max-h-screen bg-[#140C08] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-6 sm:py-8"
       style={{
         background:
-          'radial-gradient(ellipse at 50% 36%, #28170F 0%, #160D08 55%, #0D0704 100%)',
+          'radial-gradient(ellipse at 50% 34%, #28170F 0%, #160D08 55%, #0D0704 100%)',
       }}
     >
       {/* Anchor shim for legacy #about links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
 
       {/* Atmospheric warm ambient glow & vignettes */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_36%,rgba(218,165,96,0.12)_0%,rgba(0,0,0,0.65)_85%)]" />
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#140C08] to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#140C08] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_34%,rgba(218,165,96,0.13)_0%,rgba(0,0,0,0.7)_85%)]" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#140C08] to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#140C08] to-transparent pointer-events-none" />
 
-      {/* SECTION HEADLINE */}
-      <header className="relative z-20 text-center px-6 max-w-5xl mx-auto pt-2 sm:pt-4">
-        <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-[3.2rem] text-[#F5EDE4] font-normal tracking-[0.16em] uppercase leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.85)]">
+      {/* 1. TOP HEADER (Pinned high with generous vertical breathing room) */}
+      <header className="relative z-20 text-center px-6 max-w-5xl mx-auto pt-2 md:pt-4">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-[2.85rem] text-[#F5EDE4] font-normal tracking-[0.18em] uppercase leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.85)]">
           Our Journey of Distillation
         </h2>
       </header>
 
-      {/* INTERACTIVE ROTATING DIAL CANVAS */}
+      {/* 2. CENTRAL DIAL TRACK (Only the numbers, badge, and coffee bean on the curve) */}
       <div
         ref={trackRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="relative z-10 w-full h-[540px] sm:h-[580px] md:h-[620px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-hidden my-auto"
+        className="relative z-10 w-full h-[320px] sm:h-[350px] md:h-[380px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-hidden my-auto"
       >
         {/* SVG DELICATE DOTTED GOLD GUIDELINE DOME */}
-        <div className="absolute inset-x-0 top-[270px] sm:top-[285px] md:top-[300px] -translate-y-1/2 h-[120px] pointer-events-none z-0">
+        <div className="absolute inset-x-0 top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 h-[120px] pointer-events-none z-0">
           <svg
             className="w-full h-full overflow-visible"
             viewBox="0 0 1200 120"
@@ -320,16 +305,16 @@ export default function EditorialStory() {
           >
             <defs>
               <linearGradient id="goldDottedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#C8956C" stopOpacity="0.12" />
-                <stop offset="15%" stopColor="#D4A373" stopOpacity="0.45" />
+                <stop offset="0%" stopColor="#C8956C" stopOpacity="0.08" />
+                <stop offset="15%" stopColor="#D4A373" stopOpacity="0.4" />
                 <stop offset="50%" stopColor="#F5EDE4" stopOpacity="0.85" />
-                <stop offset="85%" stopColor="#D4A373" stopOpacity="0.45" />
-                <stop offset="100%" stopColor="#C8956C" stopOpacity="0.12" />
+                <stop offset="85%" stopColor="#D4A373" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#C8956C" stopOpacity="0.08" />
               </linearGradient>
             </defs>
-            {/* Parabolic dome: starts at (0, 80), crests at (600, 16), ends at (1200, 80) */}
+            {/* Parabolic dome: starts at (0, 76), crests at (600, 16), ends at (1200, 76) */}
             <path
-              d="M 0 80 Q 600 16 1200 80"
+              d="M 0 76 Q 600 16 1200 76"
               stroke="url(#goldDottedGrad)"
               strokeWidth="1.8"
               strokeDasharray="2.5 6.5"
@@ -338,26 +323,26 @@ export default function EditorialStory() {
           </svg>
         </div>
 
-        {/* ROASTED COFFEE BEAN PIN MARKER */}
+        {/* ROASTED COFFEE BEAN PIN MARKER WITH CONTINUOUS FLOAT & ROLL */}
         <div
           className="absolute z-20 pointer-events-none transition-transform duration-100 ease-out will-change-transform"
           style={{
             left: `${beanGeometry.beanXPct}%`,
-            top: `calc(272px + ${beanGeometry.beanYDroopPx}px)`,
+            top: `calc(180px + ${beanGeometry.beanYDroopPx}px)`,
             transform: `translate(-50%, -50%) rotate(${beanGeometry.rollAngle}deg)`,
           }}
         >
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[4.75rem] md:h-[4.75rem]">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[4.5rem] md:h-[4.5rem] animate-float-bean">
             <img
               src={singleCoffeeBean}
               alt="Roasted Coffee Bean Marker"
-              className="w-full h-full object-contain filter drop-shadow-[0_12px_18px_rgba(0,0,0,0.9)] drop-shadow-[0_0_14px_rgba(218,165,96,0.45)]"
+              className="w-full h-full object-contain filter drop-shadow-[0_12px_18px_rgba(0,0,0,0.95)] drop-shadow-[0_0_16px_rgba(218,165,96,0.45)]"
               draggable={false}
             />
           </div>
         </div>
 
-        {/* THREE WIREFRAME NUMBERS & NARRATIVE BLOCKS (01, 02, 03) */}
+        {/* THREE NUMERALS (01, 02, 03) */}
         {CHAPTERS.map((chap, idx) => {
           const geo = calculateGeometry(idx);
 
@@ -371,88 +356,54 @@ export default function EditorialStory() {
               }}
               style={{
                 left: `${geo.xPct}%`,
-                top: `calc(280px + ${geo.yDroopPx}px)`,
+                top: `calc(190px + ${geo.yDroopPx}px)`,
                 transform: `translate(-50%, -50%) rotate(${geo.rotationDeg}deg) scale(${geo.scale})`,
                 opacity: geo.opacity,
                 willChange: 'transform, opacity',
               }}
-              className={`absolute flex flex-col items-center select-none transition-opacity duration-300 ${
+              className={`absolute flex flex-col items-center select-none transition-all duration-300 ${
                 geo.isCenter
                   ? 'z-30 cursor-default'
-                  : 'z-10 cursor-pointer hover:opacity-70'
+                  : 'z-10 cursor-pointer hover:opacity-40'
               }`}
             >
-              {/* CREAM BADGE (Prominently rests above the active number) */}
+              {/* CREAM BADGE (Only on Active Center Step) */}
               <div
-                className={`mb-3 transition-all duration-300 ${
+                className={`mb-2 md:mb-3 transition-all duration-300 ${
                   geo.isCenter
                     ? 'opacity-100 translate-y-0 scale-100'
                     : 'opacity-0 translate-y-2 pointer-events-none scale-90'
                 }`}
               >
-                <div className="bg-[#F5EDE4] text-[#1E110A] px-4 py-1 sm:px-5 sm:py-1.5 rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.7)] font-mono text-[11px] sm:text-xs font-bold tracking-[0.22em] uppercase whitespace-nowrap border border-[#FAF3EB]/50">
+                <div className="bg-[#F5EDE4] text-[#1E110A] px-4 py-1 sm:px-5 sm:py-1.5 rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.7)] font-mono text-[11px] sm:text-xs font-bold tracking-[0.22em] uppercase whitespace-nowrap border border-[#FAF3EB]/60">
                   {chap.badge}
                 </div>
               </div>
 
-              {/* WIREFRAME / OUTLINE NUMERAL */}
+              {/* NUMERAL DISPLAY */}
               <div className="relative font-sans font-light tracking-tighter leading-none select-none my-0 flex items-center justify-center">
-                <span
-                  style={{
-                    WebkitTextStroke: geo.isCenter
-                      ? '2px #E8C9A0'
-                      : '1.5px rgba(200, 149, 108, 0.42)',
-                    color: 'transparent',
-                    textShadow: geo.isCenter
-                      ? '0 0 28px rgba(232, 201, 160, 0.35)'
-                      : 'none',
-                  }}
-                  className={`block text-[6.5rem] sm:text-[8.5rem] md:text-[10.5rem] lg:text-[11.5rem] font-medium transition-all duration-300`}
-                >
-                  {chap.index}
-                </span>
-              </div>
-
-              {/* STORY DESCRIPTION UNDERNEATH */}
-              <div
-                className={`w-[260px] sm:w-[320px] md:w-[380px] text-center transition-all duration-300 ${
-                  geo.isCenter
-                    ? 'mt-4 opacity-100 translate-y-0 pointer-events-auto'
-                    : 'mt-3 opacity-60 scale-95 pointer-events-none'
-                }`}
-              >
-                {/* Active story text or faint preview lines */}
-                <div
-                  className={`font-body text-[#F5EDE4] leading-relaxed mx-auto ${
-                    geo.isCenter
-                      ? 'text-sm sm:text-base md:text-[1.0625rem]'
-                      : 'text-xs sm:text-sm text-[#E8C9A0]/75'
-                  }`}
-                >
-                  {chap.previewText.map((line, lIdx) => (
-                    <span key={lIdx} className="block">
-                      {line}
-                    </span>
-                  ))}
-                </div>
-
-                {/* "LEARN MORE" ACTION FOR CENTER ACTIVE STEP */}
-                {geo.isCenter && (
-                  <div className="mt-5 sm:mt-6 flex flex-col items-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedMonograph(chap);
-                      }}
-                      className="group inline-flex items-center gap-2 font-mono text-xs sm:text-sm uppercase tracking-[0.25em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-all duration-300 border-b border-[#C8956C]/60 hover:border-[#FDF8F3] pb-1 cursor-pointer"
-                    >
-                      <span>LEARN MORE</span>
-                      <ArrowUpRight
-                        size={14}
-                        className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
-                      />
-                    </button>
-                  </div>
+                {geo.isCenter ? (
+                  // CENTER ACTIVE: Solid warm cream fill (#F5F2ED) with luminous ambient gold glow
+                  <span
+                    style={{
+                      color: '#F5F2ED',
+                      textShadow: '0 0 32px rgba(232, 201, 160, 0.45), 0 0 60px rgba(200, 149, 108, 0.25)',
+                    }}
+                    className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-medium transition-all duration-300"
+                  >
+                    {chap.index}
+                  </span>
+                ) : (
+                  // SIDES INACTIVE: Strictly faint, delicate wireframe outline
+                  <span
+                    style={{
+                      WebkitTextStroke: '1.5px rgba(200, 149, 108, 0.35)',
+                      color: 'transparent',
+                    }}
+                    className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-light transition-all duration-300"
+                  >
+                    {chap.index}
+                  </span>
                 )}
               </div>
             </div>
@@ -460,8 +411,35 @@ export default function EditorialStory() {
         })}
       </div>
 
-      {/* FOOTER CONTROLS & VINTAGE DIAL STEP INDICATORS */}
-      <footer className="relative z-20 flex items-center justify-between px-6 sm:px-12 max-w-4xl mx-auto w-full pt-2">
+      {/* 3. DEDICATED STATIC STORY CONTAINER BELOW THE ARC (Clean, isolated, centered) */}
+      <div className="relative z-20 max-w-xl mx-auto px-6 text-center min-h-[140px] sm:min-h-[150px] flex flex-col items-center justify-center">
+        {/* Animated Story Text with smooth cross-fade */}
+        <div
+          key={activeChapter.id}
+          className="transition-all duration-300 ease-out animate-fade-in"
+        >
+          <p className="font-body text-base sm:text-[1.0625rem] md:text-lg font-medium text-[#E6DFD5] leading-[1.7] max-w-lg mx-auto">
+            {activeChapter.previewText.join(' ')}
+          </p>
+
+          {/* Underlined "LEARN MORE" Button */}
+          <div className="mt-4 sm:mt-5 flex justify-center">
+            <button
+              onClick={() => setSelectedMonograph(activeChapter)}
+              className="group inline-flex items-center gap-2 font-mono text-xs sm:text-sm uppercase tracking-[0.25em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-all duration-300 border-b border-[#C8956C]/60 hover:border-[#FDF8F3] pb-1 cursor-pointer"
+            >
+              <span>LEARN MORE</span>
+              <ArrowUpRight
+                size={14}
+                className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. ALWAYS-VISIBLE NAVIGATION BAR & DIAL INDICATORS (Guaranteed within 100vh) */}
+      <footer className="relative z-30 flex items-center justify-between px-6 sm:px-12 max-w-md mx-auto w-full pt-1 pb-2">
         {/* Prev Arrow */}
         <button
           onClick={() => setStepTarget(Math.max(0, activeStep - 1))}
