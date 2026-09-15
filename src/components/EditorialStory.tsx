@@ -119,20 +119,17 @@ export default function EditorialStory() {
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const dragStartProgress = useRef(0);
-  const isSteppingRef = useRef(false);
-  const lastStepTimeRef = useRef(0);
-  const touchStartYRef = useRef(0);
 
   // Monograph Modal state
   const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
 
-  // Smooth spring lerp for dial movements
-  const animateDial = useCallback(() => {
+  // Smooth spring lerp for dial movements (used primarily for pointer drag snapping)
+  const animateDial = useCallback(function tick() {
     const diff = targetProgress.current - currentProgress.current;
     if (Math.abs(diff) > 0.001) {
       currentProgress.current += diff * 0.18;
       setDialProgress(currentProgress.current);
-      animFrameId.current = requestAnimationFrame(animateDial);
+      animFrameId.current = requestAnimationFrame(tick);
     } else {
       currentProgress.current = targetProgress.current;
       setDialProgress(targetProgress.current);
@@ -146,29 +143,25 @@ export default function EditorialStory() {
       const clamped = Math.max(0, Math.min(2, targetStep));
       targetProgress.current = clamped;
 
-      if (animFrameId.current === null) {
-        animFrameId.current = requestAnimationFrame(animateDial);
-      }
-
-      // Sync page scroll with the step inside the pinned region
+      // Sync page scroll with the step inside the pinned region.
+      // We rely on lenis.scrollTo to drive the ScrollTrigger progress, 
+      // which in turn perfectly synchronizes the dial without stuttering.
       if (scrollTriggerInstance.current) {
         const st = scrollTriggerInstance.current;
         const targetScroll = st.start + (clamped / 2) * PIN_DISTANCE;
-        isSteppingRef.current = true;
 
         if (lenis) {
           lenis.scrollTo(targetScroll, {
-            duration: 0.5,
+            duration: 0.8,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            onComplete: () => {
-              isSteppingRef.current = false;
-            },
           });
         } else {
           window.scrollTo({ top: targetScroll, behavior: 'smooth' });
-          setTimeout(() => {
-            isSteppingRef.current = false;
-          }, 500);
+        }
+      } else {
+        // Fallback if ScrollTrigger is missing
+        if (animFrameId.current === null) {
+          animFrameId.current = requestAnimationFrame(animateDial);
         }
       }
     },
@@ -188,8 +181,8 @@ export default function EditorialStory() {
         pin: true,
         anticipatePin: 1,
         onUpdate: (self) => {
-          // If the user drags the native browser scrollbar directly, map progress smoothly
-          if (!isSteppingRef.current && !isDragging.current) {
+          // Sync GSAP's scroll progress directly to our dial progress unless user is pointer-dragging the dial
+          if (!isDragging.current) {
             const p = self.progress * 2;
             targetProgress.current = p;
             currentProgress.current = p;
@@ -206,102 +199,7 @@ export default function EditorialStory() {
     };
   }, []);
 
-  // 1-Touch Scroll & Swipe Stepping:
-  // Intercepts wheel/swipe while docked at top so 1 flick advances exactly 1 step!
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Check if section is docked at top of viewport
-      const rect = container.getBoundingClientRect();
-      const isDocked = rect.top <= 12 && rect.bottom >= window.innerHeight - 12;
-      if (!isDocked) return;
-
-      // Ignore micro-jitters
-      if (Math.abs(e.deltaY) < 16) return;
-
-      const now = Date.now();
-      const currentStep = Math.round(targetProgress.current);
-
-      if (e.deltaY > 0) {
-        // Scrolling DOWN
-        if (currentStep < 2) {
-          // Consume wheel event and advance exactly 1 step!
-          e.preventDefault();
-          e.stopPropagation();
-
-          if (now - lastStepTimeRef.current > 420) {
-            lastStepTimeRef.current = now;
-            goToStep(currentStep + 1);
-          }
-        }
-        // If currentStep === 2: do NOT preventDefault! Allow normal scroll to smoothly proceed into VisitUs!
-      } else if (e.deltaY < 0) {
-        // Scrolling UP
-        if (currentStep > 0) {
-          // Consume wheel event and step backward by 1!
-          e.preventDefault();
-          e.stopPropagation();
-
-          if (now - lastStepTimeRef.current > 420) {
-            lastStepTimeRef.current = now;
-            goToStep(currentStep - 1);
-          }
-        }
-        // If currentStep === 0: do NOT preventDefault! Allow normal scroll to smoothly return to TactileMenu!
-      }
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartYRef.current = e.touches[0].clientY;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      const rect = container.getBoundingClientRect();
-      const isDocked = rect.top <= 12 && rect.bottom >= window.innerHeight - 12;
-      if (!isDocked) return;
-
-      const currentY = e.touches[0].clientY;
-      const deltaY = touchStartYRef.current - currentY;
-      const now = Date.now();
-      const currentStep = Math.round(targetProgress.current);
-
-      if (Math.abs(deltaY) < 24) return;
-
-      if (deltaY > 0) {
-        // Swiping UP (scroll down)
-        if (currentStep < 2) {
-          e.preventDefault();
-          if (now - lastStepTimeRef.current > 420) {
-            lastStepTimeRef.current = now;
-            touchStartYRef.current = currentY;
-            goToStep(currentStep + 1);
-          }
-        }
-      } else if (deltaY < 0) {
-        // Swiping DOWN (scroll up)
-        if (currentStep > 0) {
-          e.preventDefault();
-          if (now - lastStepTimeRef.current > 420) {
-            lastStepTimeRef.current = now;
-            touchStartYRef.current = currentY;
-            goToStep(currentStep - 1);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [goToStep]);
+  // 1-Touch Scroll Interceptors removed: The dial now smoothly tracks native scroll momentum.
 
   // Pointer drag on track
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -350,36 +248,61 @@ export default function EditorialStory() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeStep, selectedMonograph, goToStep]);
 
-  // Parabolic dome geometry:
-  // Center is X = 50%, Y = baseline.
+  // Parabolic dome geometry (continuous mathematical interpolation "ribbon physics"):
+  // Tracks exactly to the SVG Bezier curve so the dashed line dead-centers the numerals.
   const calculateGeometry = (stepIndex: number) => {
     const delta = stepIndex - dialProgress;
     const xPct = 50 + delta * 33;
     const normalizedDist = Math.abs(delta);
 
-    // Parabolic droop matching the SVG guideline
-    const yDroopPx = Math.pow(delta, 2) * 44;
+    // Exact quadratic Bezier Y calculation matching: M 0 76 Q 600 16 1200 76
+    const t = xPct / 100;
+    const exactY = Math.pow(1 - t, 2) * 76 + 2 * (1 - t) * t * 16 + Math.pow(t, 2) * 76;
+
     // Tangent slope angle
     const rotationDeg = delta * 8;
 
-    // Center active number is 1.0 (slight scale up to 1.05), side numbers are ~0.65
+    // Smooth scaling from 1.05 (center) down to 0.65 (edges)
     const scale = Math.max(0.65, 1.05 - normalizedDist * 0.4);
 
-    // Active center is 1.0; inactive sides are strictly faint wireframes (0.22)
-    const isCenter = Math.abs(delta) < 0.35;
-    const opacity = isCenter ? 1.0 : Math.max(0.08, 0.24 - (normalizedDist - 0.35) * 0.15);
+    // Number opacity: overall fade near the edges, never abruptly pops
+    const opacity = Math.max(0.15, 1.0 - normalizedDist * 0.6);
 
-    return { delta, xPct, yDroopPx, rotationDeg, scale, opacity, isCenter };
+    // Badge continuous interpolation (fades out and moves down smoothly as it leaves center)
+    const badgeOpacity = Math.max(0, 1 - normalizedDist * 2.5);
+    const badgeTranslateY = normalizedDist * 16;
+    const badgeScale = Math.max(0.85, 1 - normalizedDist * 0.2);
+
+    // Crossfade between Solid Fill (Center) and Wireframe (Sides)
+    const fillOpacity = Math.max(0, 1 - normalizedDist * 1.5);
+    const wireframeOpacity = Math.min(1, normalizedDist * 1.5);
+
+    const isInteractiveCenter = normalizedDist < 0.2;
+
+    return { 
+      delta, 
+      xPct, 
+      exactY, 
+      rotationDeg, 
+      scale, 
+      opacity, 
+      badgeOpacity, 
+      badgeTranslateY, 
+      badgeScale, 
+      fillOpacity, 
+      wireframeOpacity, 
+      isInteractiveCenter 
+    };
   };
 
-  // Coffee Bean marker: sits at 50% + 9.2% width, right beside the active crest numeral
+  // Coffee Bean marker: sits at 50% + 9.2% width, perfectly hugging the exact Bezier path
   const beanGeometry = useMemo(() => {
     const beanXPct = 50 + 9.2;
-    const deltaFromCrest = (beanXPct - 50) / 33;
-    const beanYDroopPx = Math.pow(deltaFromCrest, 2) * 44;
+    const t = beanXPct / 100;
+    const exactY = Math.pow(1 - t, 2) * 76 + 2 * (1 - t) * t * 16 + Math.pow(t, 2) * 76;
     // Roll rotation as dial travels between numbers
     const rollAngle = 26 + dialProgress * 40;
-    return { beanXPct, beanYDroopPx, rollAngle };
+    return { beanXPct, exactY, rollAngle };
   }, [dialProgress]);
 
   const activeChapter = CHAPTERS[activeStep];
@@ -448,11 +371,10 @@ export default function EditorialStory() {
 
         {/* ROASTED COFFEE BEAN PIN MARKER WITH CONTINUOUS FLOAT & ROLL */}
         <div
-          className="absolute z-20 pointer-events-none transition-transform duration-100 ease-out will-change-transform"
+          className="absolute z-20 pointer-events-none top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 will-change-transform"
           style={{
             left: `${beanGeometry.beanXPct}%`,
-            top: `calc(180px + ${beanGeometry.beanYDroopPx}px)`,
-            transform: `translate(-50%, -50%) rotate(${beanGeometry.rollAngle}deg)`,
+            transform: `translate(-50%, calc(-50% + ${beanGeometry.exactY}px)) rotate(${beanGeometry.rollAngle}deg)`,
           }}
         >
           <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[4.5rem] md:h-[4.5rem] animate-float-bean">
@@ -479,56 +401,56 @@ export default function EditorialStory() {
               }}
               style={{
                 left: `${geo.xPct}%`,
-                top: `calc(190px + ${geo.yDroopPx}px)`,
-                transform: `translate(-50%, -50%) rotate(${geo.rotationDeg}deg) scale(${geo.scale})`,
+                // Calculate position so the dashed line exactly pierces the vertical center of the numeral
+                transform: `translate(-50%, calc(-50% + ${geo.exactY}px)) rotate(${geo.rotationDeg}deg) scale(${geo.scale})`,
                 opacity: geo.opacity,
                 willChange: 'transform, opacity',
               }}
-              className={`absolute flex flex-col items-center select-none transition-all duration-300 ${
-                geo.isCenter
+              className={`absolute top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 flex flex-col items-center justify-center select-none ${
+                geo.isInteractiveCenter
                   ? 'z-30 cursor-default'
-                  : 'z-10 cursor-pointer hover:opacity-40'
+                  : 'z-10 cursor-pointer hover:opacity-40 transition-opacity'
               }`}
             >
-              {/* CREAM BADGE (Only on Active Center Step) */}
+              {/* CREAM BADGE (Absolutely positioned above the numeral to decouple from document flow) */}
               <div
-                className={`mb-2 md:mb-3 transition-all duration-300 ${
-                  geo.isCenter
-                    ? 'opacity-100 translate-y-0 scale-100'
-                    : 'opacity-0 translate-y-2 pointer-events-none scale-90'
-                }`}
+                className="absolute bottom-[80%] pointer-events-none whitespace-nowrap z-40 will-change-transform"
+                style={{
+                  opacity: geo.badgeOpacity,
+                  transform: `translateY(${geo.badgeTranslateY}px) scale(${geo.badgeScale})`,
+                  display: geo.badgeOpacity > 0.01 ? 'block' : 'none'
+                }}
               >
-                <div className="bg-[#F5EDE4] text-[#1E110A] px-4 py-1 sm:px-5 sm:py-1.5 rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.7)] font-mono text-[11px] sm:text-xs font-bold tracking-[0.22em] uppercase whitespace-nowrap border border-[#FAF3EB]/60">
+                <div className="bg-[#F5EDE4] text-[#1E110A] px-4 py-1 sm:px-5 sm:py-1.5 rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.7)] font-mono text-[11px] sm:text-xs font-bold tracking-[0.22em] uppercase border border-[#FAF3EB]/60">
                   {chap.badge}
                 </div>
               </div>
 
-              {/* NUMERAL DISPLAY */}
-              <div className="relative font-sans font-light tracking-tighter leading-none select-none my-0 flex items-center justify-center">
-                {geo.isCenter ? (
-                  // CENTER ACTIVE: Solid warm cream fill (#F5F2ED) with luminous ambient gold glow
-                  <span
-                    style={{
-                      color: '#F5F2ED',
-                      textShadow:
-                        '0 0 32px rgba(232, 201, 160, 0.45), 0 0 60px rgba(200, 149, 108, 0.25)',
-                    }}
-                    className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-medium transition-all duration-300"
-                  >
-                    {chap.index}
-                  </span>
-                ) : (
-                  // SIDES INACTIVE: Strictly faint, delicate wireframe outline
-                  <span
-                    style={{
-                      WebkitTextStroke: '1.5px rgba(200, 149, 108, 0.35)',
-                      color: 'transparent',
-                    }}
-                    className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-light transition-all duration-300"
-                  >
-                    {chap.index}
-                  </span>
-                )}
+              {/* NUMERAL DISPLAY (Stacked continuous crossfade) */}
+              <div className="relative font-sans font-light tracking-tighter leading-none select-none flex items-center justify-center">
+                {/* 1. SIDES INACTIVE: Delicate wireframe outline */}
+                <span
+                  style={{
+                    WebkitTextStroke: '1.5px rgba(200, 149, 108, 0.45)',
+                    color: 'transparent',
+                    opacity: geo.wireframeOpacity,
+                  }}
+                  className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-light will-change-opacity"
+                >
+                  {chap.index}
+                </span>
+
+                {/* 2. CENTER ACTIVE: Solid warm cream fill with luminous ambient gold glow */}
+                <span
+                  style={{
+                    color: '#F5F2ED',
+                    textShadow: '0 0 32px rgba(232, 201, 160, 0.45), 0 0 60px rgba(200, 149, 108, 0.25)',
+                    opacity: geo.fillOpacity,
+                  }}
+                  className="absolute inset-0 block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-medium will-change-opacity flex items-center justify-center"
+                >
+                  {chap.index}
+                </span>
               </div>
             </div>
           );
