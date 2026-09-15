@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { gsap, ScrollTrigger } from '../lib/gsap';
+import { useLenis } from '../context/LenisContext';
 import { Compass, Clock, VolumeX, ArrowUpRight, X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 import qualityCoffeeImg from '../assets/images/features/quality-coffee.jpg';
@@ -97,33 +98,39 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
+const PIN_DISTANCE = 750;
+
 export default function EditorialStory() {
   const containerRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollTriggerInstance = useRef<ScrollTrigger | null>(null);
+  const lenis = useLenis();
 
-  // Default resting position: Step 02 (index 1)
-  const [dialProgress, setDialProgress] = useState<number>(1);
-  const targetProgress = useRef<number>(1);
-  const currentProgress = useRef<number>(1);
+  // Initial resting position: 0 (Step 01 in the middle!)
+  const [dialProgress, setDialProgress] = useState<number>(0);
+  const targetProgress = useRef<number>(0);
+  const currentProgress = useRef<number>(0);
   const animFrameId = useRef<number | null>(null);
 
   // Active step integer (0, 1, 2)
   const activeStep = Math.min(2, Math.max(0, Math.round(dialProgress)));
 
-  // Drag interaction
+  // Interaction locks & timestamps
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
-  const dragStartProgress = useRef(1);
+  const dragStartProgress = useRef(0);
+  const isSteppingRef = useRef(false);
+  const lastStepTimeRef = useRef(0);
+  const touchStartYRef = useRef(0);
 
   // Monograph Modal state
   const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
 
-  // Snappy yet smooth spring lerp for dial motion
+  // Smooth spring lerp for dial movements
   const animateDial = useCallback(() => {
     const diff = targetProgress.current - currentProgress.current;
     if (Math.abs(diff) > 0.001) {
-      currentProgress.current += diff * 0.18; // Crisper, faster interpolation
+      currentProgress.current += diff * 0.18;
       setDialProgress(currentProgress.current);
       animFrameId.current = requestAnimationFrame(animateDial);
     } else {
@@ -133,19 +140,42 @@ export default function EditorialStory() {
     }
   }, []);
 
-  const setStepTarget = useCallback(
-    (target: number) => {
-      const clamped = Math.max(0, Math.min(2, target));
+  // Discrete 1-Touch Step Navigator: moves exactly 1 step and syncs scroll
+  const goToStep = useCallback(
+    (targetStep: number) => {
+      const clamped = Math.max(0, Math.min(2, targetStep));
       targetProgress.current = clamped;
+
       if (animFrameId.current === null) {
         animFrameId.current = requestAnimationFrame(animateDial);
       }
+
+      // Sync page scroll with the step inside the pinned region
+      if (scrollTriggerInstance.current) {
+        const st = scrollTriggerInstance.current;
+        const targetScroll = st.start + (clamped / 2) * PIN_DISTANCE;
+        isSteppingRef.current = true;
+
+        if (lenis) {
+          lenis.scrollTo(targetScroll, {
+            duration: 0.5,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            onComplete: () => {
+              isSteppingRef.current = false;
+            },
+          });
+        } else {
+          window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+          setTimeout(() => {
+            isSteppingRef.current = false;
+          }, 500);
+        }
+      }
     },
-    [animateDial]
+    [lenis, animateDial]
   );
 
-  // Quick-response GSAP ScrollTrigger:
-  // Short distance (+=550px) and fast scrub (0.2s) ensures crisp, swift transitions
+  // Pinned ScrollTrigger setup (Starts at Step 01 when section docks at top)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -154,15 +184,13 @@ export default function EditorialStory() {
       const st = ScrollTrigger.create({
         trigger: container,
         start: 'top top',
-        end: '+=550', // Fast & responsive scroll distance
+        end: `+=${PIN_DISTANCE}`,
         pin: true,
-        scrub: 0.25, // Snappy tracking without sluggish delay
         anticipatePin: 1,
         onUpdate: (self) => {
-          if (!isDragging.current) {
-            // When arriving at top (progress 0), resting on Step 02 (1.0).
-            // Scrolling down traverses swiftly towards Step 03 (2.0).
-            const p = 1.0 + self.progress * 1.0;
+          // If the user drags the native browser scrollbar directly, map progress smoothly
+          if (!isSteppingRef.current && !isDragging.current) {
+            const p = self.progress * 2;
             targetProgress.current = p;
             currentProgress.current = p;
             setDialProgress(p);
@@ -178,7 +206,104 @@ export default function EditorialStory() {
     };
   }, []);
 
-  // Pointer drag handling
+  // 1-Touch Scroll & Swipe Stepping:
+  // Intercepts wheel/swipe while docked at top so 1 flick advances exactly 1 step!
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Check if section is docked at top of viewport
+      const rect = container.getBoundingClientRect();
+      const isDocked = rect.top <= 12 && rect.bottom >= window.innerHeight - 12;
+      if (!isDocked) return;
+
+      // Ignore micro-jitters
+      if (Math.abs(e.deltaY) < 16) return;
+
+      const now = Date.now();
+      const currentStep = Math.round(targetProgress.current);
+
+      if (e.deltaY > 0) {
+        // Scrolling DOWN
+        if (currentStep < 2) {
+          // Consume wheel event and advance exactly 1 step!
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (now - lastStepTimeRef.current > 420) {
+            lastStepTimeRef.current = now;
+            goToStep(currentStep + 1);
+          }
+        }
+        // If currentStep === 2: do NOT preventDefault! Allow normal scroll to smoothly proceed into VisitUs!
+      } else if (e.deltaY < 0) {
+        // Scrolling UP
+        if (currentStep > 0) {
+          // Consume wheel event and step backward by 1!
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (now - lastStepTimeRef.current > 420) {
+            lastStepTimeRef.current = now;
+            goToStep(currentStep - 1);
+          }
+        }
+        // If currentStep === 0: do NOT preventDefault! Allow normal scroll to smoothly return to TactileMenu!
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartYRef.current = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const rect = container.getBoundingClientRect();
+      const isDocked = rect.top <= 12 && rect.bottom >= window.innerHeight - 12;
+      if (!isDocked) return;
+
+      const currentY = e.touches[0].clientY;
+      const deltaY = touchStartYRef.current - currentY;
+      const now = Date.now();
+      const currentStep = Math.round(targetProgress.current);
+
+      if (Math.abs(deltaY) < 24) return;
+
+      if (deltaY > 0) {
+        // Swiping UP (scroll down)
+        if (currentStep < 2) {
+          e.preventDefault();
+          if (now - lastStepTimeRef.current > 420) {
+            lastStepTimeRef.current = now;
+            touchStartYRef.current = currentY;
+            goToStep(currentStep + 1);
+          }
+        }
+      } else if (deltaY < 0) {
+        // Swiping DOWN (scroll up)
+        if (currentStep > 0) {
+          e.preventDefault();
+          if (now - lastStepTimeRef.current > 420) {
+            lastStepTimeRef.current = now;
+            touchStartYRef.current = currentY;
+            goToStep(currentStep - 1);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [goToStep]);
+
+  // Pointer drag on track
   const handlePointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('button, a')) return;
     isDragging.current = true;
@@ -207,27 +332,26 @@ export default function EditorialStory() {
       // ignore
     }
     const snapped = Math.round(Math.max(0, Math.min(2, currentProgress.current)));
-    setStepTarget(snapped);
+    goToStep(snapped);
   };
 
-  // Keyboard controls
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
-        setStepTarget(Math.max(0, activeStep - 1));
+        goToStep(Math.max(0, activeStep - 1));
       } else if (e.key === 'ArrowRight') {
-        setStepTarget(Math.min(2, activeStep + 1));
+        goToStep(Math.min(2, activeStep + 1));
       } else if (e.key === 'Escape' && selectedMonograph) {
         setSelectedMonograph(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeStep, selectedMonograph, setStepTarget]);
+  }, [activeStep, selectedMonograph, goToStep]);
 
-  // Geometry calculation for the dome arc:
+  // Parabolic dome geometry:
   // Center is X = 50%, Y = baseline.
-  // Parabolic droop drops ~42px at ±1 step.
   const calculateGeometry = (stepIndex: number) => {
     const delta = stepIndex - dialProgress;
     const xPct = 50 + delta * 33;
@@ -238,7 +362,7 @@ export default function EditorialStory() {
     // Tangent slope angle
     const rotationDeg = delta * 8;
 
-    // Center active number is 1.0 (with slight scale up to 1.05), side numbers are ~0.65
+    // Center active number is 1.0 (slight scale up to 1.05), side numbers are ~0.65
     const scale = Math.max(0.65, 1.05 - normalizedDist * 0.4);
 
     // Active center is 1.0; inactive sides are strictly faint wireframes (0.22)
@@ -248,14 +372,13 @@ export default function EditorialStory() {
     return { delta, xPct, yDroopPx, rotationDeg, scale, opacity, isCenter };
   };
 
-  // Bean Position tracking along the curve beside the active center numeral
+  // Coffee Bean marker: sits at 50% + 9.2% width, right beside the active crest numeral
   const beanGeometry = useMemo(() => {
-    // Sits at 50% + 9.5% width, centered on the curve
     const beanXPct = 50 + 9.2;
     const deltaFromCrest = (beanXPct - 50) / 33;
     const beanYDroopPx = Math.pow(deltaFromCrest, 2) * 44;
-    // Roll rotation when dial travels
-    const rollAngle = 26 + (dialProgress - 1) * 40;
+    // Roll rotation as dial travels between numbers
+    const rollAngle = 26 + dialProgress * 40;
     return { beanXPct, beanYDroopPx, rollAngle };
   }, [dialProgress]);
 
@@ -351,7 +474,7 @@ export default function EditorialStory() {
               key={chap.id}
               onClick={() => {
                 if (idx !== activeStep) {
-                  setStepTarget(idx);
+                  goToStep(idx);
                 }
               }}
               style={{
@@ -387,7 +510,8 @@ export default function EditorialStory() {
                   <span
                     style={{
                       color: '#F5F2ED',
-                      textShadow: '0 0 32px rgba(232, 201, 160, 0.45), 0 0 60px rgba(200, 149, 108, 0.25)',
+                      textShadow:
+                        '0 0 32px rgba(232, 201, 160, 0.45), 0 0 60px rgba(200, 149, 108, 0.25)',
                     }}
                     className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-medium transition-all duration-300"
                   >
@@ -442,7 +566,7 @@ export default function EditorialStory() {
       <footer className="relative z-30 flex items-center justify-between px-6 sm:px-12 max-w-md mx-auto w-full pt-1 pb-2">
         {/* Prev Arrow */}
         <button
-          onClick={() => setStepTarget(Math.max(0, activeStep - 1))}
+          onClick={() => goToStep(Math.max(0, activeStep - 1))}
           disabled={activeStep === 0}
           aria-label="Previous step"
           className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
@@ -459,7 +583,7 @@ export default function EditorialStory() {
           {CHAPTERS.map((chap, i) => (
             <button
               key={chap.id}
-              onClick={() => setStepTarget(i)}
+              onClick={() => goToStep(i)}
               className="group flex items-center gap-2 p-1 cursor-pointer"
               aria-label={`Jump to step ${chap.index}`}
             >
@@ -476,7 +600,7 @@ export default function EditorialStory() {
 
         {/* Next Arrow */}
         <button
-          onClick={() => setStepTarget(Math.min(2, activeStep + 1))}
+          onClick={() => goToStep(Math.min(2, activeStep + 1))}
           disabled={activeStep === 2}
           aria-label="Next step"
           className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
