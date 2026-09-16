@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import { MapPin, Clock, Phone, ArrowUpRight } from 'lucide-react';
 
+
 import cafeInterior1Img from '../assets/images/visit/cafe-interior-1.jpg';
 import cafeInterior2Img from '../assets/images/visit/cafe-interior-2.jpg';
 import cafeInterior3Img from '../assets/images/visit/cafe-interior-3.jpg';
@@ -10,6 +11,7 @@ export default function VisitUs() {
   const textRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLDivElement>(null);
 
+  // Animate the text block in from the left
   useScrollReveal(textRef, { x: -40, opacity: 0 });
   useScrollReveal(imgRef, { x: 40, opacity: 0 });
 

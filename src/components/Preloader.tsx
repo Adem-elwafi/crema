@@ -139,7 +139,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
             key={i} 
             className={`ingredient ${ing.class} absolute w-20 h-20 sm:w-24 sm:h-24 md:w-36 md:h-36 drop-shadow-2xl`}
           >
-            <img src={ing.src} alt={ing.alt} className="w-full h-full object-contain" />
+            <img src={ing.src} alt={ing.alt} width={100} height={100} className="w-full h-full object-contain" />
           </div>
         ))}
       </div>

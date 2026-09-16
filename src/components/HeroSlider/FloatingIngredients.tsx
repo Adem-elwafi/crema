@@ -93,6 +93,8 @@ export default function FloatingIngredients({ ingredients, slideId, direction }:
                   <img
                     src={ingredient.image}
                     alt={ingredient.name}
+                    width={100}
+                    height={100}
                     className="w-full h-full object-contain select-none"
                     draggable={false}
                   />

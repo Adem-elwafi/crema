@@ -35,7 +35,7 @@ function App() {
 
         {/* Hero + Manifesto Stage: Hero is ONLY sticky while Manifesto ascends over it */}
         <div className="relative w-full">
-          <div className="sticky top-0 z-0 h-screen w-full overflow-hidden">
+          <div className="sticky top-0 z-0 h-dvh w-full overflow-hidden">
             <HeroSlider isPaused={!isPreloaderComplete} />
           </div>
           <div className="relative z-10">

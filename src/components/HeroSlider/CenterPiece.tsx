@@ -70,6 +70,8 @@ export default function CenterPiece({ slide, direction, onAnimationComplete }: C
               <img
                 src={slide.image}
                 alt={slide.title}
+                width={400}
+                height={400}
                 className="w-full h-full object-contain select-none filter contrast-105"
                 draggable={false}
               />

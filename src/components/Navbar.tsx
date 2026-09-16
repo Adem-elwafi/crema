@@ -88,7 +88,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -40 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-x-0 top-0 h-screen pointer-events-none z-50 overflow-hidden"
+            className="fixed inset-x-0 top-0 h-dvh pointer-events-none z-50 overflow-hidden"
           >
             {!isBelowLg ? (
               /* DESKTOP (≥ lg): Dual-Layer Split-Clip — polygon diagonal mapped to hero */

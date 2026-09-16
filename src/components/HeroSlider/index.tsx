@@ -60,7 +60,7 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
   return (
     <section
       id="hero"
-      className="relative w-full min-h-screen overflow-hidden bg-cream touch-pan-y"
+      className="relative w-full min-h-dvh overflow-hidden bg-cream touch-pan-y"
       {...touchHandlers}
     >
       {/* Incline Diagonal Split — 2 columns vertical split on desktop (>954px), 2 rows inclined middle split on <=954px */}
@@ -70,7 +70,7 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
       </div>
 
       {/* Content Layout — 2 rows on <=954px (Row 1: Cup, Row 2: Text), 2 columns on >954px */}
-      <div className="relative z-10 w-full min-h-screen flex flex-col min-[955px]:grid min-[955px]:grid-cols-2">
+      <div className="relative z-10 w-full min-h-dvh flex flex-col min-[955px]:grid min-[955px]:grid-cols-2">
         {/* Text Column / Row 2 on <=954px: Order 2 on mobile, Order 1 on desktop */}
         <div className="relative z-20 flex flex-col justify-center px-6 sm:px-12 min-[955px]:pl-16 lg:pl-24 min-[955px]:pr-8 max-[954px]:order-2 max-[954px]:pt-6 max-[954px]:pb-16 min-[955px]:order-1 min-[955px]:py-0">
           <SlideContent
@@ -92,7 +92,7 @@ export default function HeroSlider({ isPaused = false }: { isPaused?: boolean })
         </div>
 
         {/* Product Visual / Row 1 on <=954px: Order 1 on mobile, Order 2 on desktop */}
-        <div className="relative z-10 flex items-center justify-center max-[954px]:order-1 max-[954px]:h-[42vh] max-[954px]:pt-16 min-[955px]:order-2 min-[955px]:min-h-screen">
+        <div className="relative z-10 flex items-center justify-center max-[954px]:order-1 max-[954px]:h-[42vh] max-[954px]:pt-16 min-[955px]:order-2 min-[955px]:min-h-dvh">
           <CenterPiece
             slide={currentSlide}
             direction={direction}

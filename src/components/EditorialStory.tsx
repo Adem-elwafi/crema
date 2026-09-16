@@ -311,7 +311,7 @@ export default function EditorialStory() {
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full h-screen max-h-screen bg-[#140C08] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-6 sm:py-8"
+      className="relative w-full h-dvh max-h-dvh bg-[#140C08] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-6 sm:py-8"
       style={{
         background:
           'radial-gradient(ellipse at 50% 34%, #28170F 0%, #160D08 55%, #0D0704 100%)',
