@@ -311,19 +311,17 @@ export default function EditorialStory() {
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full h-dvh max-h-dvh bg-[#140C08] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-6 sm:py-8"
+      className="relative w-full h-dvh max-h-dvh bg-[#0E0805] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-6 sm:py-8"
       style={{
         background:
-          'radial-gradient(ellipse at 50% 34%, #28170F 0%, #160D08 55%, #0D0704 100%)',
+          'radial-gradient(ellipse at 50% 34%, #1A100B 0%, #0E0805 70%)',
       }}
     >
       {/* Anchor shim for legacy #about links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
 
-      {/* Atmospheric warm ambient glow & vignettes */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_34%,rgba(218,165,96,0.13)_0%,rgba(0,0,0,0.7)_85%)]" />
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#140C08] to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#140C08] to-transparent pointer-events-none" />
+      {/* Atmospheric warm ambient glow */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_34%,rgba(218,165,96,0.08)_0%,transparent_75%)]" />
 
       {/* 1. TOP HEADER (Pinned high with generous vertical breathing room) */}
       <header className="relative z-20 text-center px-6 max-w-5xl mx-auto pt-2 md:pt-4">

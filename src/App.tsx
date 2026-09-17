@@ -25,7 +25,7 @@ function App() {
 
   return (
     <LenisProvider paused={!isPreloaderComplete}>
-      <div className="bg-brown-900 text-brown-900 font-body overflow-x-clip">
+      <div className="bg-[#0E0805] text-[#FDF8F3] font-body overflow-x-clip">
         {!isPreloaderComplete && <Preloader onComplete={() => {
           setIsPreloaderComplete(true);
           setTimeout(() => ScrollTrigger.refresh(), 200);

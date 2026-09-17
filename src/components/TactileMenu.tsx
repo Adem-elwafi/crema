@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Sparkles, Plus, Check, Compass, Flame, Droplet, ArrowRight, Layers } from 'lucide-react';
+import { Sparkles, Plus, Check, Droplet, ArrowRight, Layers } from 'lucide-react';
 import { gsap } from '../lib/gsap';
 import { useLenis } from '../context/LenisContext';
 
@@ -9,116 +9,79 @@ import latteCup from '../assets/images/hero/latte-cup.webp';
 import espressoCup from '../assets/images/hero/espresso-cup.webp';
 import singleCoffeeBean from '../assets/images/hero/single-coffee-bean.webp';
 import creamSplash from '../assets/images/hero/cream-splash.webp';
-import cinnamonSticks from '../assets/images/hero/cinnamon-sticks.webp';
-import sugarCubes from '../assets/images/hero/sugar-cubes.webp';
 import mintLeaf from '../assets/images/hero/mint-leaf.webp';
-import flyingCoffeeBeans from '../assets/images/hero/flying-coffee-beans.webp';
+import cinnamonSticks from '../assets/images/hero/cinnamon-sticks.webp';
 
 interface ExtractionItem {
   id: string;
   name: string;
-  category: string;
   index: string;
   price: string;
+  originElevation: string;
   notes: string;
-  origin: string;
-  elevation: string;
-  roast: string;
-  process: string;
-  varietal: string;
-  tags: string[];
+  tasteNotes: string[];
   heroImage: string;
   heroWidth: number;
   heroHeight: number;
-  backdropImage: string;
-  foregroundImage: string;
-  accentColor: string;
+  accentImage: string;
 }
 
 const EXTRACTIONS: ExtractionItem[] = [
   {
     id: 'cappuccino',
     name: 'Artisan Cortado & Cappuccino',
-    category: 'Signature Hot',
     index: '01',
     price: '$4.80',
+    originElevation: 'Guji Highland, Ethiopia · 2,150m',
     notes:
-      'Velvety microfoam aerated to silky perfection, paired with single-origin Ethiopian Guji. Offers nuanced undertones of candied orange, wild stonefruit, and floral jasmine.',
-    origin: 'Guji Highland, Ethiopia',
-    elevation: '2,150m',
-    roast: 'Analog Cast-Iron Drum',
-    process: 'Natural Anaerobic (72h)',
-    varietal: 'Heirloom Typica',
-    tags: ['WILD STONEFRUIT', 'CANDIED ORANGE', 'MICROFOAM VELVET', 'GUJI HEIRLOOM'],
+      'Aerated silky microfoam paired with single-origin Ethiopian Guji. Offers nuanced undertones of candied orange, wild stonefruit, and floral jasmine blossom.',
+    tasteNotes: ['Candied Orange', 'Wild Stonefruit', 'Silky Microfoam'],
     heroImage: cappuccinoCup,
     heroWidth: 260,
     heroHeight: 215,
-    backdropImage: sugarCubes,
-    foregroundImage: singleCoffeeBean,
-    accentColor: '#C8956C',
+    accentImage: singleCoffeeBean,
   },
   {
     id: 'coldbrew',
     name: 'Single-Origin Kyoto Cold Drip',
-    category: 'Slow Extraction',
     index: '02',
     price: '$5.50',
+    originElevation: 'Boquete, Panama · 1,800m',
     notes:
-      '18-hour cold water percolation through artisanal glass distillation columns. Features washed Panama Geisha with crystal-clear notes of bergamot, honeysuckle, and lychee.',
-    origin: 'Boquete, Panama',
-    elevation: '1,800m',
-    roast: 'Light Cinnamon Roast',
-    process: '18-Hour Ice Percolation',
-    varietal: 'Washed Geisha 1931',
-    tags: ['WASHED GEISHA', 'BERGAMOT CITRUS', 'KYOTO DRIP 18H', 'FLORAL CLARITY'],
+      '18-hour cold percolation through artisanal glass distillation columns. Features washed Panama Geisha with crystal-clear notes of bergamot, honeysuckle, and lychee.',
+    tasteNotes: ['Bergamot Citrus', 'Washed Geisha', '18h Slow Drip'],
     heroImage: coldbrewGlass,
     heroWidth: 220,
     heroHeight: 340,
-    backdropImage: flyingCoffeeBeans,
-    foregroundImage: mintLeaf,
-    accentColor: '#A0714D',
+    accentImage: mintLeaf,
   },
   {
     id: 'latte',
     name: 'Velvet Layered Honey Latte',
-    category: 'Signature Warmth',
     index: '03',
     price: '$5.20',
+    originElevation: 'Huila, Colombia · 1,950m',
     notes:
-      'Steamed Jersey whole milk with dense micro-textures, Colombian Huila espresso extraction, and a delicate infusion of raw wildflower honeycomb.',
-    origin: 'Huila, Colombia',
-    elevation: '1,950m',
-    roast: 'Medium Espresso Profile',
-    process: 'Honey Extended Ferment',
-    varietal: 'Castillo & Caturra',
-    tags: ['WILDFLOWER HONEY', 'JERSEY WHOLE MILK', 'HUILA WASHED', 'HONEYCOMB TEXTURE'],
+      'Steamed Jersey whole milk with micro-textures, Colombian Huila espresso extraction, and a delicate infusion of raw mountain wildflower honeycomb.',
+    tasteNotes: ['Wildflower Honey', 'Jersey Whole Milk', 'Honeycomb Velvet'],
     heroImage: latteCup,
     heroWidth: 250,
     heroHeight: 290,
-    backdropImage: cinnamonSticks,
-    foregroundImage: creamSplash,
-    accentColor: '#E8C9A0',
+    accentImage: cinnamonSticks,
   },
   {
     id: 'ristretto',
     name: 'Double Ristretto Obsidian',
-    category: 'Pure Extraction',
     index: '04',
     price: '$4.20',
+    originElevation: 'Tarrazú, Costa Rica · 2,050m',
     notes:
-      'Restricted 18g pull concentrated in 22 seconds. Yields a dense tiger-stripe crema with deep notes of bittersweet 85% raw cacao, roasted hazelnut, and molasses.',
-    origin: 'Tarrazú, Costa Rica',
-    elevation: '2,050m',
-    roast: 'Obsidian Dark Roast',
-    process: 'Anaerobic Natural Pulp',
-    varietal: 'Red Catuai Single Lot',
-    tags: ['TIGER CREMA', 'RAW CACAO 85%', '18G RESTRICTED PULL', 'OBSIDIAN ROAST'],
+      'Restricted 18g pull concentrated in 22 seconds. Yields a dense tiger-stripe crema with deep notes of bittersweet raw cacao, roasted hazelnut, and molasses.',
+    tasteNotes: ['Tiger Crema', '85% Raw Cacao', 'Restricted Pull'],
     heroImage: espressoCup,
     heroWidth: 250,
     heroHeight: 235,
-    backdropImage: sugarCubes,
-    foregroundImage: singleCoffeeBean,
-    accentColor: '#C8956C',
+    accentImage: creamSplash,
   },
 ];
 
@@ -179,9 +142,9 @@ export default function TactileMenu() {
     if (!container || !stage || !deck) return;
 
     const ctx = gsap.context(() => {
-      // Responsive Tab Height: 54px on mobile, 64px on md+
+      // Responsive Tab Height: 52px on mobile, 60px on md+
       const isMobile = window.innerWidth < 768;
-      const tabHeight = isMobile ? 54 : 64;
+      const tabHeight = isMobile ? 52 : 60;
 
       const cardElements = cardsRef.current.filter(Boolean) as HTMLDivElement[];
       if (cardElements.length < 2) return;
@@ -225,24 +188,13 @@ export default function TactileMenu() {
           (i - 1) * 1.0
         );
 
-        // Subtly parallax the floating background ingredient inside the card
-        const bgImg = card.querySelector('.parallax-bg');
+        // Subtly parallax the floating accent element inside the card
         const fgImg = card.querySelector('.parallax-fg');
-
-        if (bgImg) {
-          tl.fromTo(
-            bgImg,
-            { y: 30, opacity: 0.2 },
-            { y: -20, opacity: 0.45, ease: 'none', duration: 1.2 },
-            (i - 1) * 1.0
-          );
-        }
-
         if (fgImg) {
           tl.fromTo(
             fgImg,
-            { y: 40, rotation: -15 },
-            { y: -15, rotation: 15, ease: 'none', duration: 1.2 },
+            { y: 35, rotation: -12 },
+            { y: -15, rotation: 12, ease: 'none', duration: 1.2 },
             (i - 1) * 1.0
           );
         }
@@ -258,21 +210,19 @@ export default function TactileMenu() {
     <section
       ref={containerRef}
       id="menu"
-      className="relative w-full h-[380vh] bg-[#120A06] text-[#FDF8F3] select-none"
+      className="relative w-full h-[380vh] bg-[#0E0805] text-[#FDF8F3] select-none"
       style={{
         background:
-          'radial-gradient(ellipse at 50% 30%, #24140D 0%, #150C07 55%, #0D0704 100%)',
+          'radial-gradient(ellipse at 50% 30%, #1A100B 0%, #0E0805 70%)',
       }}
     >
-      {/* Ambient Atmospheric Glow & Hairline Gradients */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_25%,rgba(200,149,108,0.08)_0%,rgba(0,0,0,0.85)_80%)]" />
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#120A06] to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#120A06] to-transparent pointer-events-none" />
+      {/* Ambient Atmospheric Glow */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_25%,rgba(200,149,108,0.06)_0%,transparent_75%)]" />
 
       {/* STICKY STAGE (Viewport Pinned) */}
       <div
         ref={stageRef}
-        className="sticky top-0 h-dvh w-full overflow-hidden flex flex-col justify-between py-4 sm:py-6 md:py-8 px-4 sm:px-8 lg:px-12"
+        className="sticky top-0 h-dvh w-full overflow-hidden flex flex-col justify-between py-5 sm:py-7 md:py-8 px-4 sm:px-8 lg:px-12"
       >
         {/* 1. TOP SECTION HEADER */}
         <div className="relative z-30 max-w-5xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-1">
@@ -290,7 +240,7 @@ export default function TactileMenu() {
             <p className="font-body text-xs sm:text-sm text-[#D7CCC8]/70 max-w-xs sm:text-right hidden md:block">
               Scrub to cycle through single-origin roastery extractions.
             </p>
-            <div className="flex items-center gap-1.5 bg-black/40 border border-[#C8956C]/30 px-3 py-1.5 rounded-full font-mono text-[10px] tracking-widest text-[#E8C9A0]">
+            <div className="flex items-center gap-1.5 bg-black/40 border border-[#C8956C]/30 px-3.5 py-1.5 rounded-full font-mono text-[10px] tracking-widest text-[#E8C9A0]">
               <Layers size={12} className="text-[#C8956C]" />
               <span>4 STACKED LOTS</span>
             </div>
@@ -300,7 +250,7 @@ export default function TactileMenu() {
         {/* 2. PINNED CARD DECK CONTAINER */}
         <div
           ref={deckRef}
-          className="relative w-full max-w-5xl mx-auto flex-1 my-2 sm:my-3 min-h-[420px] max-h-[560px] sm:max-h-[580px] md:max-h-[600px] lg:max-h-[620px]"
+          className="relative w-full max-w-5xl mx-auto flex-1 my-2 sm:my-3 min-h-[420px] max-h-[540px] sm:max-h-[560px] md:max-h-[580px] lg:max-h-[600px]"
         >
           {EXTRACTIONS.map((item, idx) => (
             <div
@@ -313,7 +263,7 @@ export default function TactileMenu() {
               {/* PINNED HEADER TAB (Rolodex Tab / Breadcrumb) */}
               <div
                 onClick={() => handleCardClick(idx)}
-                className="relative z-30 h-[54px] md:h-[64px] rounded-t-2xl sm:rounded-t-3xl bg-[#1C120C] border-t border-x border-[#C8956C]/30 px-4 sm:px-6 md:px-8 flex items-center justify-between shadow-[0_16px_30px_rgba(0,0,0,0.7)] cursor-pointer hover:bg-[#231710] transition-colors group"
+                className="relative z-30 h-[52px] md:h-[60px] rounded-t-2xl sm:rounded-t-3xl bg-[#180F0A] border-t border-x border-[#C8956C]/25 px-4 sm:px-7 md:px-8 flex items-center justify-between shadow-[0_16px_30px_rgba(0,0,0,0.7)] cursor-pointer hover:bg-[#20140D] transition-colors group"
                 style={{
                   boxShadow: '0 16px 30px rgba(0, 0, 0, 0.65)',
                 }}
@@ -322,150 +272,93 @@ export default function TactileMenu() {
                 <div className="absolute top-0 inset-x-6 h-[1px] bg-gradient-to-r from-transparent via-[#C8956C]/60 to-transparent" />
 
                 {/* Left: Tab Title & Index */}
-                <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
-                  <span className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#C8956C] font-semibold shrink-0">
-                    EXTRACTION 0{idx + 1}
+                <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                  <span className="font-mono text-xs uppercase tracking-[0.25em] text-[#C8956C] font-semibold shrink-0">
+                    0{idx + 1}
                   </span>
-                  <span className="text-[#C8956C]/40 hidden sm:inline font-mono text-xs">
-                    //
-                  </span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#E8C9A0]/60 hidden md:inline shrink-0">
-                    {item.category}
-                  </span>
-                  <span className="text-[#C8956C]/40 hidden md:inline font-mono text-xs">
-                    //
+                  <span className="text-[#C8956C]/30 font-mono text-xs">
+                    /
                   </span>
                   <h3 className="font-display italic text-sm sm:text-base md:text-lg text-[#FDF8F3] font-medium tracking-wide truncate group-hover:text-[#E8C9A0] transition-colors">
                     {item.name}
                   </h3>
                 </div>
 
-                {/* Right: Price & Tab Indicator */}
+                {/* Right: Price */}
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
-                  <span className="font-mono text-xs sm:text-sm font-bold text-[#E8C9A0] px-2.5 py-1 rounded-md bg-black/40 border border-[#C8956C]/30">
+                  <span className="font-mono text-xs sm:text-sm font-semibold text-[#E8C9A0] px-3 py-1 rounded-md bg-black/40 border border-[#C8956C]/30">
                     {item.price}
                   </span>
                 </div>
               </div>
 
-              {/* CARD BODY (Solid Curtain Wipe Panel) */}
+              {/* CARD BODY (Quiet Luxury Editorial Curtain Wipe Panel) */}
               <div
-                className="relative z-20 flex-1 bg-[#140C08] border-x border-b border-[#C8956C]/25 rounded-b-2xl sm:rounded-b-3xl overflow-hidden p-4 sm:p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8"
+                className="relative z-20 flex-1 bg-[#110A06] border-x border-b border-[#C8956C]/20 rounded-b-2xl sm:rounded-b-3xl overflow-hidden p-5 sm:p-7 md:p-9 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-8"
                 style={{
                   background:
-                    'radial-gradient(ellipse at 70% 50%, #20120B 0%, #140C08 60%, #0D0704 100%)',
+                    'radial-gradient(ellipse at 70% 50%, #1A0E08 0%, #110A06 70%)',
                 }}
               >
                 {/* Subtle Inner Border Accent */}
                 <div className="absolute inset-2 rounded-xl sm:rounded-2xl border border-white/5 pointer-events-none" />
 
-                {/* LEFT COLUMN: Editorial Narrative & Extraction Matrix */}
-                <div className="w-full md:w-[56%] flex flex-col justify-between h-full relative z-10 space-y-3 sm:space-y-4">
-                  {/* Origin & Elevation Badges */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-[#C8956C] bg-black/40 border border-[#C8956C]/30 px-2.5 py-1 rounded-full">
-                      <Compass size={11} />
-                      {item.origin}
+                {/* LEFT COLUMN: Poetic Sensory Story & Refined Details */}
+                <div className="w-full md:w-[54%] flex flex-col justify-between h-full relative z-10 space-y-3 sm:space-y-4">
+                  <div>
+                    <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[#C8956C] block mb-1">
+                      {item.originElevation}
                     </span>
-                    <span className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D7CCC8]/80 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
-                      {item.elevation}
-                    </span>
+                    <h4 className="font-display text-xl sm:text-2xl md:text-3xl text-[#F5EDE4] font-medium tracking-tight leading-snug">
+                      {item.name}
+                    </h4>
                   </div>
 
                   {/* Tasting Notes */}
-                  <p className="font-body text-xs sm:text-sm md:text-[0.9375rem] text-[#E6DFD5] leading-relaxed line-clamp-3 sm:line-clamp-none">
+                  <p className="font-body text-xs sm:text-sm md:text-[0.9375rem] text-[#D7CCC8]/90 leading-relaxed font-light">
                     {item.notes}
                   </p>
 
-                  {/* 4-Metric Technical Matrix Grid */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5 p-3 rounded-xl bg-black/40 border border-[#C8956C]/15 font-mono text-[10px] sm:text-[11px]">
-                    <div>
-                      <span className="text-[#C8956C]/80 block uppercase tracking-wider text-[9px] sm:text-[10px]">
-                        VARIETAL
-                      </span>
-                      <span className="text-[#F5EDE4] font-medium truncate block">
-                        {item.varietal}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#C8956C]/80 block uppercase tracking-wider text-[9px] sm:text-[10px]">
-                        ROAST METHOD
-                      </span>
-                      <span className="text-[#F5EDE4] font-medium truncate block">
-                        {item.roast}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#C8956C]/80 block uppercase tracking-wider text-[9px] sm:text-[10px]">
-                        FERMENTATION
-                      </span>
-                      <span className="text-[#F5EDE4] font-medium truncate block">
-                        {item.process}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#C8956C]/80 block uppercase tracking-wider text-[9px] sm:text-[10px]">
-                        EXTRACTION FLOW
-                      </span>
-                      <span className="text-[#F5EDE4] font-medium truncate block">
-                        Single Origin Lot
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Flavor Profile Tags */}
-                  <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
-                    {item.tags.map((tag, tIdx) => (
+                  {/* Curated Taste Notes */}
+                  <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                    {item.tasteNotes.map((note, nIdx) => (
                       <span
-                        key={tIdx}
-                        className="font-mono text-[9px] tracking-widest uppercase text-[#D7CCC8]/70 bg-white/[0.04] px-2 py-0.5 rounded border border-white/5"
+                        key={nIdx}
+                        className="font-mono text-[10px] sm:text-[11px] tracking-widest uppercase text-[#E8C9A0] bg-[#1F130D]/80 border border-[#C8956C]/30 px-3 py-1 rounded-full"
                       >
-                        #{tag}
+                        {note}
                       </span>
                     ))}
                   </div>
 
                   {/* Action & Order Row */}
-                  <div className="pt-1 sm:pt-2 flex items-center justify-between">
-                    <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#C8956C]/70 flex items-center gap-1.5">
-                      <Flame size={12} />
-                      FRESH PULL ON ORDER
-                    </span>
-
+                  <div className="pt-2 flex items-center justify-between">
                     <button
                       onClick={() => handleOrder(item)}
-                      className={`cursor-pointer px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs font-mono tracking-widest uppercase font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg ${
+                      className={`cursor-pointer px-5 sm:px-7 py-2.5 sm:py-3 rounded-full text-xs font-mono tracking-widest uppercase font-semibold transition-all duration-300 flex items-center gap-2.5 shadow-lg ${
                         orderedId === item.id
                           ? 'bg-emerald-600 text-cream scale-105 shadow-emerald-900/40'
-                          : 'bg-[#C8956C] text-[#1A100B] hover:bg-[#E8C9A0] hover:scale-105 shadow-[#C8956C]/20 border border-[#E8C9A0]/50'
+                          : 'bg-[#C8956C] text-[#120A06] hover:bg-[#E8C9A0] hover:scale-105 shadow-[#C8956C]/25 border border-[#E8C9A0]/50'
                       }`}
                       aria-label={`Order ${item.name}`}
                     >
                       {orderedId === item.id ? (
                         <>
-                          <Check size={14} /> EXTRACTING
+                          <Check size={14} /> EXTRACTING TICKET
                         </>
                       ) : (
                         <>
-                          <Plus size={14} /> ORDER NOW
+                          <Plus size={14} /> ORDER EXTRACTION — {item.price}
                         </>
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* RIGHT COLUMN: Artisanal Drink Presentation & Floating Parallax Assets */}
-                <div className="w-full md:w-[42%] h-44 sm:h-56 md:h-full relative flex items-center justify-center overflow-visible">
+                {/* RIGHT COLUMN: Artisanal Drink Presentation */}
+                <div className="w-full md:w-[44%] h-44 sm:h-56 md:h-full relative flex items-center justify-center overflow-visible">
                   {/* Atmospheric Glow */}
-                  <div className="absolute w-44 sm:w-56 h-44 sm:h-56 rounded-full bg-[#C8956C]/15 blur-3xl pointer-events-none" />
-
-                  {/* Floating Depth-of-Field Backdrop Ingredient */}
-                  <img
-                    src={item.backdropImage}
-                    alt=""
-                    aria-hidden="true"
-                    className="parallax-bg absolute z-0 w-20 sm:w-28 opacity-40 filter blur-[2px] -left-2 top-4 pointer-events-none select-none will-change-transform"
-                  />
+                  <div className="absolute w-44 sm:w-56 h-44 sm:h-56 rounded-full bg-[#C8956C]/12 blur-3xl pointer-events-none" />
 
                   {/* Studio Hero Product Cutout */}
                   <img
@@ -473,12 +366,12 @@ export default function TactileMenu() {
                     alt={item.name}
                     width={item.heroWidth}
                     height={item.heroHeight}
-                    className="relative z-10 max-h-[160px] sm:max-h-[200px] md:max-h-[250px] lg:max-h-[270px] w-auto object-contain filter drop-shadow-[0_22px_28px_rgba(0,0,0,0.85)] select-none pointer-events-auto transition-transform duration-500 hover:scale-105"
+                    className="relative z-10 max-h-[170px] sm:max-h-[210px] md:max-h-[250px] lg:max-h-[270px] w-auto object-contain filter drop-shadow-[0_22px_28px_rgba(0,0,0,0.85)] select-none pointer-events-auto transition-transform duration-500 hover:scale-105"
                   />
 
-                  {/* Floating Foreground Micro Element */}
+                  {/* Floating Micro Accent Element */}
                   <img
-                    src={item.foregroundImage}
+                    src={item.accentImage}
                     alt=""
                     aria-hidden="true"
                     className="parallax-fg absolute z-20 w-12 sm:w-16 filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] -right-2 bottom-2 pointer-events-none select-none will-change-transform"
@@ -493,7 +386,7 @@ export default function TactileMenu() {
         <div className="relative z-30 max-w-5xl mx-auto w-full flex items-center justify-between pt-1 pb-1">
           <div className="flex items-center gap-2 font-mono text-[10px] sm:text-xs text-[#C8956C]/70 uppercase tracking-widest">
             <Droplet size={12} />
-            <span>EXTRACTED ON 1968 PROBAT DRUM</span>
+            <span>ROASTED ON 1968 PROBAT DRUM</span>
           </div>
 
           <a
