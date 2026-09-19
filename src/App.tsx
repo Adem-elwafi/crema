@@ -45,11 +45,29 @@ function App() {
           </div>
         </div>
 
-        {/* Downstream Sections — completely independent, Hero can never leak here */}
+        {/* ─── Unified Dark Canvas ───────────────────────────────────────────
+            TactileMenu and EditorialStory share one continuous dark wrapper so
+            their radial glows bleed through section boundaries without any
+            visible seam or clip edge.                                          */}
+        <section className="relative w-full bg-[#0E0805] overflow-x-clip">
+          {/* Single shared atmospheric radial glow — replaces per-section inline backgrounds */}
+          <div
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_20%,#1A100B_0%,#0E0805_70%)]"
+            aria-hidden="true"
+          />
+          <div className="relative z-10">
+            <Suspense fallback={null}>
+              <LazyContentReady>
+                <TactileMenu />
+                <EditorialStory />
+              </LazyContentReady>
+            </Suspense>
+          </div>
+        </section>
+
+        {/* ─── Downstream light sections ────────────────────────────────────── */}
         <Suspense fallback={null}>
           <LazyContentReady>
-            <TactileMenu />
-            <EditorialStory />
             <VisitUs />
             <Newsletter />
             <Footer />

@@ -149,55 +149,47 @@ export default function TactileMenu() {
       const cardElements = cardsRef.current.filter(Boolean) as HTMLDivElement[];
       if (cardElements.length < 2) return;
 
-      // Create smooth scrubbing timeline pinned across container scroll
+      const movingCards = cardElements.slice(1); // cards 1, 2, 3
+      const count = movingCards.length;          // 3
+
+      // Each card occupies an equal slice of the total timeline so there is
+      // no dead-zone: card 1 runs [0, 1/3], card 2 [1/3, 2/3], card 3 [2/3, 1].
+      const sliceDuration = 3 / count; // total timeline units = 3
+
+      // scrub: 0.3 gives crisp real-time tracking without elastic lag bursts
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: 0.8,
+          scrub: 0.3,
           invalidateOnRefresh: true,
         },
       });
 
       // Card 0 stays anchored at top 0.
-      // Subsequent cards slide up sequentially and stop at (i * tabHeight)
-      cardElements.forEach((card, i) => {
-        if (i === 0) {
-          gsap.set(card, { y: 0, zIndex: 10 });
-          return;
-        }
+      gsap.set(cardElements[0], { y: 0, zIndex: 10 });
 
-        const targetY = i * tabHeight;
-        const zIndex = 10 + i;
-        gsap.set(card, { zIndex });
+      // Distribute remaining cards evenly so the last card settles just
+      // before progress = 1 (no dead-zone at the end of the section).
+      movingCards.forEach((card, i) => {
+        const cardIndex = i + 1; // original index in EXTRACTIONS
+        const targetY = cardIndex * tabHeight;
+        gsap.set(card, { zIndex: 10 + cardIndex });
 
-        // Start offscreen below viewport and slide upward
+        const startOffset = i * sliceDuration;
+
         tl.fromTo(
           card,
-          {
-            yPercent: 125,
-            y: 0,
-          },
+          { yPercent: 125, y: 0 },
           {
             yPercent: 0,
             y: targetY,
             ease: 'power1.inOut',
-            duration: 1.2,
+            duration: sliceDuration,
           },
-          (i - 1) * 1.0
+          startOffset
         );
-
-        // Subtly parallax the floating accent element inside the card
-        const fgImg = card.querySelector('.parallax-fg');
-        if (fgImg) {
-          tl.fromTo(
-            fgImg,
-            { y: 35, rotation: -12 },
-            { y: -15, rotation: 12, ease: 'none', duration: 1.2 },
-            (i - 1) * 1.0
-          );
-        }
       });
     }, container);
 
@@ -210,11 +202,7 @@ export default function TactileMenu() {
     <section
       ref={containerRef}
       id="menu"
-      className="relative w-full h-[380vh] bg-[#0E0805] text-[#FDF8F3] select-none"
-      style={{
-        background:
-          'radial-gradient(ellipse at 50% 30%, #1A100B 0%, #0E0805 70%)',
-      }}
+      className="relative w-full h-[280vh] text-[#FDF8F3] select-none"
     >
       {/* Ambient Atmospheric Glow */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_25%,rgba(200,149,108,0.06)_0%,transparent_75%)]" />
@@ -222,7 +210,7 @@ export default function TactileMenu() {
       {/* STICKY STAGE (Viewport Pinned) */}
       <div
         ref={stageRef}
-        className="sticky top-0 h-dvh w-full overflow-hidden flex flex-col justify-between py-5 sm:py-7 md:py-8 px-4 sm:px-8 lg:px-12"
+        className="sticky top-0 h-dvh w-full overflow-x-clip flex flex-col justify-between py-5 sm:py-7 md:py-8 px-4 sm:px-8 lg:px-12"
       >
         {/* 1. TOP SECTION HEADER */}
         <div className="relative z-30 max-w-5xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-1">
@@ -368,18 +356,44 @@ export default function TactileMenu() {
                     height={item.heroHeight}
                     className="relative z-10 max-h-[170px] sm:max-h-[210px] md:max-h-[250px] lg:max-h-[270px] w-auto object-contain filter drop-shadow-[0_22px_28px_rgba(0,0,0,0.85)] select-none pointer-events-auto transition-transform duration-500 hover:scale-105"
                   />
-
-                  {/* Floating Micro Accent Element */}
-                  <img
-                    src={item.accentImage}
-                    alt=""
-                    aria-hidden="true"
-                    className="parallax-fg absolute z-20 w-12 sm:w-16 filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] -right-2 bottom-2 pointer-events-none select-none will-change-transform"
-                  />
                 </div>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* AMBIENT INGREDIENT CORNER ACCENTS
+            Lifted out of card bodies into the stage layer so they never inflate
+            the per-card compositing budget. Each accent floats independently via
+            a gentle CSS animation and is fully pointer-events-none.            */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+          {/* Top-left: single coffee bean */}
+          <img
+            src={singleCoffeeBean}
+            alt=""
+            className="absolute top-6 left-4 sm:left-8 w-10 sm:w-14 opacity-20 rotate-[-18deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
+          />
+          {/* Top-right: cinnamon sticks */}
+          <img
+            src={cinnamonSticks}
+            alt=""
+            className="absolute top-8 right-4 sm:right-10 w-12 sm:w-16 opacity-15 rotate-[22deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
+            style={{ animationDelay: '1.1s' }}
+          />
+          {/* Bottom-left: mint leaf */}
+          <img
+            src={mintLeaf}
+            alt=""
+            className="absolute bottom-16 left-6 sm:left-10 w-10 sm:w-14 opacity-15 rotate-[12deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
+            style={{ animationDelay: '0.6s' }}
+          />
+          {/* Bottom-right: cream splash */}
+          <img
+            src={creamSplash}
+            alt=""
+            className="absolute bottom-14 right-6 sm:right-10 w-12 sm:w-16 opacity-10 rotate-[-8deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
+            style={{ animationDelay: '1.8s' }}
+          />
         </div>
 
         {/* 3. BOTTOM FOOTER NAVIGATION CALLOUT */}

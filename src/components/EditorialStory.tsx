@@ -98,7 +98,7 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
-const PIN_DISTANCE = 750;
+const PIN_DISTANCE = 2400;
 
 export default function EditorialStory() {
   const containerRef = useRef<HTMLElement>(null);
@@ -110,6 +110,9 @@ export default function EditorialStory() {
   const [dialProgress, setDialProgress] = useState<number>(0);
   const targetProgress = useRef<number>(0);
   const currentProgress = useRef<number>(0);
+  // rAF handle for batched React state flush — prevents synchronous re-renders
+  // inside the GSAP onUpdate tick that would block the compositor.
+  const rafFlushId = useRef<number | null>(null);
   const animFrameId = useRef<number | null>(null);
 
   // Active step integer (0, 1, 2)
@@ -144,7 +147,7 @@ export default function EditorialStory() {
       targetProgress.current = clamped;
 
       // Sync page scroll with the step inside the pinned region.
-      // We rely on lenis.scrollTo to drive the ScrollTrigger progress, 
+      // We rely on lenis.scrollTo to drive the ScrollTrigger progress,
       // which in turn perfectly synchronizes the dial without stuttering.
       if (scrollTriggerInstance.current) {
         const st = scrollTriggerInstance.current;
@@ -180,13 +183,29 @@ export default function EditorialStory() {
         end: `+=${PIN_DISTANCE}`,
         pin: true,
         anticipatePin: 1,
+        fastScrollEnd: true,
+        // Snap to each of the 3 steps (progress 0, 0.5, 1) so releasing
+        // momentum always settles on a clean chapter boundary.
+        snap: {
+          snapTo: [0, 0.5, 1],
+          duration: { min: 0.2, max: 0.5 },
+          ease: 'power1.inOut',
+        },
         onUpdate: (self) => {
-          // Sync GSAP's scroll progress directly to our dial progress unless user is pointer-dragging the dial
+          // Write target into ref immediately (zero-cost, no re-render).
+          // Flush to React state via rAF so we never block the GSAP tick
+          // with a synchronous render cycle.
           if (!isDragging.current) {
             const p = self.progress * 2;
             targetProgress.current = p;
             currentProgress.current = p;
-            setDialProgress(p);
+            if (rafFlushId.current !== null) {
+              cancelAnimationFrame(rafFlushId.current);
+            }
+            rafFlushId.current = requestAnimationFrame(() => {
+              setDialProgress(targetProgress.current);
+              rafFlushId.current = null;
+            });
           }
         },
       });
@@ -196,6 +215,7 @@ export default function EditorialStory() {
     return () => {
       ctx.revert();
       if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
+      if (rafFlushId.current) cancelAnimationFrame(rafFlushId.current);
     };
   }, []);
 

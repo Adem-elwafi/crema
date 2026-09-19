@@ -17,11 +17,13 @@ export default function CinematicManifesto() {
 
     const ctx = gsap.context(() => {
       const words = gsap.utils.toArray<HTMLElement>('.manifesto-word');
-      // ─── 1. Luxury depth: Hero gently scales down & dims as Manifesto covers it ──
+      // ─── 1. Luxury depth: Hero dims as Manifesto covers it ──────────────────
+      // Scale removed: animating scale on the entire Hero subtree forces a full
+      // compositor repaint of every child (cups, framer-motion elements, blur divs).
+      // Opacity-only runs entirely on the GPU compositing thread with zero layout cost.
       const heroEl = document.getElementById('hero');
       if (heroEl) {
         gsap.to(heroEl, {
-          scale: 0.94,
           opacity: 0.35,
           ease: 'none',
           scrollTrigger: {
@@ -110,12 +112,12 @@ export default function CinematicManifesto() {
     <section
       ref={containerRef}
       id="manifesto"
-      className="relative z-10 w-full min-h-dvh bg-[#0E0805] text-cream -mt-8 sm:-mt-12 rounded-t-[2rem] sm:rounded-t-[3rem] shadow-[0_-25px_60px_rgba(0,0,0,0.65)] overflow-hidden"
+      className="relative z-10 w-full min-h-dvh text-cream rounded-t-[2rem] sm:rounded-t-[3rem] overflow-x-clip"
     >
       {/* Fullscreen Stage */}
       <div
         ref={pinRef}
-        className="relative w-full min-h-dvh py-16 sm:py-20 md:py-24 flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none bg-[#0E0805]"
+        className="relative w-full min-h-dvh py-16 sm:py-20 md:py-24 flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none"
       >
         {/* Subtle Ambient Radial Amber Glow */}
         <div className="manifesto-glow absolute inset-0 bg-radial-glow pointer-events-none will-change-transform" />
