@@ -184,11 +184,13 @@ export default function EditorialStory() {
         pin: true,
         anticipatePin: 1,
         fastScrollEnd: true,
-        // Snap to each of the 3 steps (progress 0, 0.5, 1) so releasing
-        // momentum always settles on a clean chapter boundary.
+        // Soft snap — settles on step boundaries (0 / 0.5 / 1) but with a
+        // long enough duration that it reads as graceful deceleration rather
+        // than a hard track-pad jerk. Remove this entirely if the client
+        // prefers free-scroll with no boundary snapping.
         snap: {
           snapTo: [0, 0.5, 1],
-          duration: { min: 0.2, max: 0.5 },
+          duration: { min: 0.4, max: 0.8 },
           ease: 'power1.inOut',
         },
         onUpdate: (self) => {
@@ -331,17 +333,13 @@ export default function EditorialStory() {
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full h-dvh max-h-dvh bg-[#0E0805] text-[#FDF8F3] overflow-hidden select-none flex flex-col justify-between py-6 sm:py-8"
-      style={{
-        background:
-          'radial-gradient(ellipse at 50% 34%, #1A100B 0%, #0E0805 70%)',
-      }}
+      className="relative w-full h-dvh max-h-dvh bg-[#0E0805] text-[#FDF8F3] overflow-x-clip select-none flex flex-col justify-between py-6 sm:py-8"
     >
       {/* Anchor shim for legacy #about links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
 
-      {/* Atmospheric warm ambient glow */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_34%,rgba(218,165,96,0.08)_0%,transparent_75%)]" />
+      {/* Atmospheric warm ambient glow — decays to transparent well before section bounds */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_40%,rgba(200,149,108,0.08)_0%,transparent_70%)]" aria-hidden="true" />
 
       {/* 1. TOP HEADER (Pinned high with generous vertical breathing room) */}
       <header className="relative z-20 text-center px-6 max-w-5xl mx-auto pt-2 md:pt-4">
@@ -357,7 +355,7 @@ export default function EditorialStory() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="relative z-10 w-full h-[320px] sm:h-[350px] md:h-[380px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-hidden my-auto"
+        className="relative z-10 w-full h-[320px] sm:h-[350px] md:h-[380px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-visible my-auto"
       >
         {/* SVG DELICATE DOTTED GOLD GUIDELINE DOME */}
         <div className="absolute inset-x-0 top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 h-[120px] pointer-events-none z-0">

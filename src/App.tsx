@@ -33,28 +33,24 @@ function App() {
 
         <Navbar />
 
-        {/* Hero + Manifesto Stage: Hero is ONLY sticky while Manifesto ascends over it */}
-        <div className="relative w-full">
-          <div className="sticky top-0 z-0 h-dvh w-full overflow-hidden">
-            <HeroSlider isPaused={!isPreloaderComplete} />
+        {/* ─── Unified Dark Canvas ─────────────────────────────────────────────
+            All three dark editorial sections (Manifesto → Extractions → Journey)
+            share one continuous bg-[#0E0805] ground plane and a single radial
+            glow overlay so glows bleed across section boundaries seamlessly.   */}
+        <div className="relative w-full bg-[#0E0805]">
+          {/* Hero + Manifesto: Hero is sticky; Manifesto ascends and curtains over it */}
+          <div className="relative z-10 w-full">
+            <div className="sticky top-0 z-0 h-dvh w-full overflow-hidden">
+              <HeroSlider isPaused={!isPreloaderComplete} />
+            </div>
+            <div className="relative z-10">
+              <Suspense fallback={null}>
+                <CinematicManifesto />
+              </Suspense>
+            </div>
           </div>
-          <div className="relative z-10">
-            <Suspense fallback={null}>
-              <CinematicManifesto />
-            </Suspense>
-          </div>
-        </div>
 
-        {/* ─── Unified Dark Canvas ───────────────────────────────────────────
-            TactileMenu and EditorialStory share one continuous dark wrapper so
-            their radial glows bleed through section boundaries without any
-            visible seam or clip edge.                                          */}
-        <section className="relative w-full bg-[#0E0805] overflow-x-clip">
-          {/* Single shared atmospheric radial glow — replaces per-section inline backgrounds */}
-          <div
-            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_20%,#1A100B_0%,#0E0805_70%)]"
-            aria-hidden="true"
-          />
+          {/* TactileMenu + EditorialStory: downstream dark sections */}
           <div className="relative z-10">
             <Suspense fallback={null}>
               <LazyContentReady>
@@ -63,9 +59,9 @@ function App() {
               </LazyContentReady>
             </Suspense>
           </div>
-        </section>
+        </div>
 
-        {/* ─── Downstream light sections ────────────────────────────────────── */}
+        {/* ─── Downstream light sections ──────────────────────────────────────── */}
         <Suspense fallback={null}>
           <LazyContentReady>
             <VisitUs />

@@ -156,13 +156,14 @@ export default function TactileMenu() {
       // no dead-zone: card 1 runs [0, 1/3], card 2 [1/3, 2/3], card 3 [2/3, 1].
       const sliceDuration = 3 / count; // total timeline units = 3
 
-      // scrub: 0.3 gives crisp real-time tracking without elastic lag bursts
+      // scrub: 0.4 balances crisp real-time tracking with enough inertia
+      // smoothing to feel premium on both wheel and trackpad input.
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: 0.3,
+          scrub: 0.4,
           invalidateOnRefresh: true,
         },
       });
@@ -202,16 +203,21 @@ export default function TactileMenu() {
     <section
       ref={containerRef}
       id="menu"
-      className="relative w-full h-[280vh] text-[#FDF8F3] select-none"
+      className="relative w-full h-[280vh] bg-[#0E0805] text-[#FDF8F3] select-none"
     >
       {/* Ambient Atmospheric Glow */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_25%,rgba(200,149,108,0.06)_0%,transparent_75%)]" />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_25%,rgba(200,149,108,0.06)_0%,transparent_75%)]" aria-hidden="true" />
 
       {/* STICKY STAGE (Viewport Pinned) */}
       <div
         ref={stageRef}
         className="sticky top-0 h-dvh w-full overflow-x-clip flex flex-col justify-between py-5 sm:py-7 md:py-8 px-4 sm:px-8 lg:px-12"
       >
+        {/* Soft Ambient Viewport Aura behind the Card Deck */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(200,149,108,0.06)_0%,transparent_68%)]"
+          aria-hidden="true"
+        />
         {/* 1. TOP SECTION HEADER */}
         <div className="relative z-30 max-w-5xl mx-auto w-full flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-1">
           <div>
@@ -362,37 +368,29 @@ export default function TactileMenu() {
           ))}
         </div>
 
-        {/* AMBIENT INGREDIENT CORNER ACCENTS
-            Lifted out of card bodies into the stage layer so they never inflate
-            the per-card compositing budget. Each accent floats independently via
-            a gentle CSS animation and is fully pointer-events-none.            */}
-        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-          {/* Top-left: single coffee bean */}
+        {/* AMBIENT INGREDIENT WATERMARKS
+            Pure textural grain — opacity so low they read as dark canvas texture,
+            not as visible icons. No animation, no shadow, no compositing cost.  */}
+        <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
           <img
             src={singleCoffeeBean}
             alt=""
-            className="absolute top-6 left-4 sm:left-8 w-10 sm:w-14 opacity-20 rotate-[-18deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
+            className="absolute top-8 left-4 sm:left-8 w-12 sm:w-16 opacity-[0.05] rotate-[-18deg] select-none"
           />
-          {/* Top-right: cinnamon sticks */}
           <img
             src={cinnamonSticks}
             alt=""
-            className="absolute top-8 right-4 sm:right-10 w-12 sm:w-16 opacity-15 rotate-[22deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
-            style={{ animationDelay: '1.1s' }}
+            className="absolute top-10 right-4 sm:right-10 w-14 sm:w-18 opacity-[0.05] rotate-[22deg] select-none"
           />
-          {/* Bottom-left: mint leaf */}
           <img
             src={mintLeaf}
             alt=""
-            className="absolute bottom-16 left-6 sm:left-10 w-10 sm:w-14 opacity-15 rotate-[12deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
-            style={{ animationDelay: '0.6s' }}
+            className="absolute bottom-16 left-6 sm:left-10 w-12 sm:w-16 opacity-[0.04] rotate-[12deg] select-none"
           />
-          {/* Bottom-right: cream splash */}
           <img
             src={creamSplash}
             alt=""
-            className="absolute bottom-14 right-6 sm:right-10 w-12 sm:w-16 opacity-10 rotate-[-8deg] animate-float-bean filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.5)] select-none"
-            style={{ animationDelay: '1.8s' }}
+            className="absolute bottom-12 right-6 sm:right-10 w-14 sm:w-18 opacity-[0.04] rotate-[-8deg] select-none"
           />
         </div>
 

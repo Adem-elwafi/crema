@@ -112,9 +112,10 @@ export default function CinematicManifesto() {
     <section
       ref={containerRef}
       id="manifesto"
-      className="relative z-10 w-full min-h-dvh text-cream rounded-t-[2rem] sm:rounded-t-[3rem] overflow-x-clip"
+      className="relative z-10 w-full min-h-dvh bg-[#0E0805] text-cream overflow-x-clip"
     >
-      {/* Fullscreen Stage */}
+      {/* Fullscreen Stage — bg-[#0E0805] is load-bearing: without it the section
+          is transparent and the sticky Hero content shows through underneath.   */}
       <div
         ref={pinRef}
         className="relative w-full min-h-dvh py-16 sm:py-20 md:py-24 flex flex-col justify-between p-6 sm:p-10 md:p-14 lg:p-20 select-none"

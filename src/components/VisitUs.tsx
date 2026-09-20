@@ -17,6 +17,12 @@ export default function VisitUs() {
 
   return (
     <section className="py-24 md:py-32 bg-cream-dark px-6 overflow-hidden relative" id="visit">
+      {/* Atmospheric Threshold Veil: Dissolves the dark obsidian sequence into the sunlit haven */}
+      <div
+        className="absolute top-0 inset-x-0 h-28 sm:h-36 md:h-44 bg-gradient-to-b from-[#0E0805] via-[#1A100B]/50 to-transparent pointer-events-none z-10"
+        aria-hidden="true"
+      />
+
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
         {/* Left Editorial Info */}
