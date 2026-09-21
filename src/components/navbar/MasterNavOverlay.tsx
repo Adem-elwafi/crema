@@ -1,3 +1,5 @@
+import { useLenis } from '../../context/LenisContext';
+
 interface MasterNavOverlayProps {
   navLinks: { label: string; href: string }[];
   onHoverNavIndex: (index: number | null) => void;
@@ -15,11 +17,24 @@ export const MasterNavOverlay = ({
   onOrderClick,
   onOpenDrawer,
 }: MasterNavOverlayProps) => {
+  const lenis = useLenis();
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    if (lenis) {
+      lenis.scrollTo(href, { offset: 0 });
+    } else {
+      const target = document.querySelector(href);
+      target?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between relative pointer-events-auto select-none">
       {/* LEFT: Logo Hit Target */}
       <a
         href="#hero"
+        onClick={(e) => handleNavClick(e, '#hero')}
         aria-label="CREMA - Return to top"
         className="w-[140px] h-10 opacity-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
       />
@@ -30,6 +45,7 @@ export const MasterNavOverlay = ({
           <a
             key={link.label}
             href={link.href}
+            onClick={(e) => handleNavClick(e, link.href)}
             onMouseEnter={() => onHoverNavIndex(idx)}
             onMouseLeave={() => onHoverNavIndex(null)}
             className="py-2 px-2 text-xs uppercase tracking-[0.22em] font-semibold opacity-0 cursor-pointer select-none"

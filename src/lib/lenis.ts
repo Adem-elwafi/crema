@@ -11,4 +11,6 @@ export const lenisConfig = {
   wheelMultiplier: 0.9, // slightly reduce sensitivity for premium feel
   touchMultiplier: 1.5, // keep touch/mobile responsive
   infinite: false,
+  autoRaf: false,
+  anchors: true,
 } satisfies ConstructorParameters<typeof Lenis>[0];

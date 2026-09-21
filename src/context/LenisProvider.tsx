@@ -36,10 +36,29 @@ export function LenisProvider({ children, paused = false, onReady }: LenisProvid
     // Prevent GSAP's lag compensation from fighting Lenis' own timing.
     gsap.ticker.lagSmoothing(0);
 
+    // Keep Lenis scroll dimensions synchronized with ScrollTrigger pin-spacers
+    const onScrollTriggerRefresh = () => {
+      lenis.resize();
+    };
+    ScrollTrigger.addEventListener('refresh', onScrollTriggerRefresh);
+
+    // Refresh ScrollTrigger when web fonts and window resources finish loading
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        ScrollTrigger.refresh();
+      });
+    }
+    const handleWindowLoad = () => {
+      ScrollTrigger.refresh();
+    };
+    window.addEventListener('load', handleWindowLoad);
+
     setReady(true);
     onReady?.();
 
     return () => {
+      ScrollTrigger.removeEventListener('refresh', onScrollTriggerRefresh);
+      window.removeEventListener('load', handleWindowLoad);
       if (tickerFnRef.current) {
         gsap.ticker.remove(tickerFnRef.current);
         tickerFnRef.current = null;
@@ -68,3 +87,5 @@ export function LenisProvider({ children, paused = false, onReady }: LenisProvid
     </LenisContext.Provider>
   );
 }
+
+export default LenisProvider;

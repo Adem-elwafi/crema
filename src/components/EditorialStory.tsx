@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { gsap, ScrollTrigger } from '../lib/gsap';
 import { useLenis } from '../context/LenisContext';
 import { Compass, Clock, VolumeX, ArrowUpRight, X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
@@ -8,7 +8,7 @@ import freshDeliciousImg from '../assets/images/features/fresh-delicious.jpg';
 import cozyAtmosphereImg from '../assets/images/features/cozy-atmosphere.jpg';
 import singleCoffeeBean from '../assets/images/hero/single-coffee-bean.webp';
 
-export interface Chapter {
+interface Chapter {
   id: string;
   index: string;
   badge: string;
@@ -23,7 +23,7 @@ export interface Chapter {
   icon: typeof Compass;
 }
 
-export const CHAPTERS: Chapter[] = [
+const CHAPTERS: Chapter[] = [
   {
     id: 'sourcing',
     index: '01',
@@ -31,7 +31,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'The Monastic Sourcing',
     previewText: [
       'Small runs. No conveyor belts, just slow simmering,',
-      'constant taste checks, and Doug hovering like it owes him money.',
+      'constant olfactory checks, and generational growers harvesting at dawn.',
     ],
     quote: 'Coffee is not roasted to be swallowed; it is crafted to arrest the velocity of the morning.',
     dropCap: 'E',
@@ -55,7 +55,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'The Dawn Oven',
     previewText: [
       'Small runs. Precision heat. Single-origin micro-roasting at sunrise.',
-      'Every bean is captured at its flavor peak by Doug, who oversees each crack.',
+      'Every bean captured at peak crack, overseen in patient, unhurried cadence.',
     ],
     quote: 'Long before the city street lamps flicker out, the wild sourdough cultures begin their slow exhale.',
     dropCap: 'B',
@@ -78,8 +78,8 @@ export const CHAPTERS: Chapter[] = [
     badge: 'THE ACOUSTIC SANCTUARY',
     title: 'The Acoustic Sanctuary',
     previewText: [
-      'Real fruit. Fresh from local growers. No powders. No synthetic shortcuts.',
-      'Hand-selected, sliced, spiced, and distilled in unhurried rhythm.',
+      'Real fruit. Organic stone. Natural oak baffles. No synthetic shortcuts.',
+      'Hand-crafted ceramic vessels designed to retain deliberate thermal mass.',
     ],
     quote: 'We constructed not just a café, but a physical refusal of contemporary noise and hurry.',
     dropCap: 'S',
@@ -98,435 +98,545 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
-const PIN_DISTANCE = 2400;
+// Helper to pre-compute SVG curved ruler ticks and dots
+// Curve equation: Y(t) = 210 - 320 * t * (1 - t) inside 1600x280 coordinate space
+interface TickMark {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  isMajor: boolean;
+  isMedium: boolean;
+  dotX?: number;
+  dotY?: number;
+}
+
+function generateRulerTicks(count = 88, width = 1600): TickMark[] {
+  const ticks: TickMark[] = [];
+
+  for (let i = 0; i <= count; i++) {
+    const t = i / count;
+    const x = t * width;
+    // Parabolic quadratic curve y(t)
+    const y = 210 - 320 * t * (1 - t);
+
+    // Derivative dy/dt for normal angle
+    const dy = -320 * (1 - 2 * t);
+    const dx = width;
+    const angle = Math.atan2(dy, dx);
+
+    // Normal unit vector (perpendicular to curve)
+    const nx = -Math.sin(angle);
+    const ny = Math.cos(angle);
+
+    const isMajor = i % 10 === 0;
+    const isMedium = i % 5 === 0 && !isMajor;
+    const len = isMajor ? 20 : isMedium ? 13 : 7;
+    const half = len / 2;
+
+    const tick: TickMark = {
+      x1: x - nx * half,
+      y1: y - ny * half,
+      x2: x + nx * half,
+      y2: y + ny * half,
+      isMajor,
+      isMedium,
+    };
+
+    if (!isMajor && !isMedium && i % 2 === 0) {
+      tick.dotX = x + nx * 10;
+      tick.dotY = y + ny * 10;
+    }
+
+    ticks.push(tick);
+  }
+  return ticks;
+}
+
+// Parabolic geometry calculation for numbers riding the fixed arc
+function getArcGeometry(chapterIndex: number, currentProgress: number) {
+  const delta = chapterIndex - currentProgress;
+  // Step offset: adjacent chapters sit at 42% distance from center
+  const stepOffset = 0.42;
+  const t = 0.5 + delta * stepOffset;
+  const xPct = t * 100;
+
+  // Parabolic curve height Y(t) in 280px container:
+  // Y(t) = 210 - 320 * t * (1 - t)
+  const clampedT = Math.max(0, Math.min(1, t));
+  const yPx = 210 - 320 * clampedT * (1 - clampedT);
+  const yPct = (yPx / 280) * 100;
+
+  // Tangent angle along curve
+  const slope = -0.2 * (1 - 2 * clampedT);
+  const rotDeg = Math.atan(slope) * (180 / Math.PI);
+
+  const dist = Math.abs(delta);
+  const scale = Math.max(0.68, 1 - dist * 0.32);
+  const opacity = Math.max(0, 1 - dist * 0.65);
+
+  return { xPct, yPct, rotDeg, scale, opacity, isCentered: dist < 0.2 };
+}
 
 export default function EditorialStory() {
   const containerRef = useRef<HTMLElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const scrollTriggerInstance = useRef<ScrollTrigger | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const numElementsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const storyElementsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const beanRef = useRef<HTMLDivElement>(null);
   const lenis = useLenis();
+  const scrollTriggerRef = useRef<ScrollTrigger | null>(null);
 
-  // Initial resting position: 0 (Step 01 in the middle!)
-  const [dialProgress, setDialProgress] = useState<number>(0);
-  const targetProgress = useRef<number>(0);
-  const currentProgress = useRef<number>(0);
-  // rAF handle for batched React state flush — prevents synchronous re-renders
-  // inside the GSAP onUpdate tick that would block the compositor.
-  const rafFlushId = useRef<number | null>(null);
-  const animFrameId = useRef<number | null>(null);
-
-  // Active step integer (0, 1, 2)
-  const activeStep = Math.min(2, Math.max(0, Math.round(dialProgress)));
-
-  // Interaction locks & timestamps
-  const isDragging = useRef(false);
-  const dragStartX = useRef(0);
-  const dragStartProgress = useRef(0);
+  // Active step (0, 1, 2)
+  const [activeStep, setActiveStep] = useState(0);
+  const activeStepRef = useRef(0);
+  const progressAnimRef = useRef<{ value: number }>({ value: 0 });
+  const isTransitioningRef = useRef(false);
+  const isPinnedRef = useRef(false);
+  const lastTransitionTimeRef = useRef(0);
 
   // Monograph Modal state
   const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
 
-  // Smooth spring lerp for dial movements (used primarily for pointer drag snapping)
-  const animateDial = useCallback(function tick() {
-    const diff = targetProgress.current - currentProgress.current;
-    if (Math.abs(diff) > 0.001) {
-      currentProgress.current += diff * 0.18;
-      setDialProgress(currentProgress.current);
-      animFrameId.current = requestAnimationFrame(tick);
-    } else {
-      currentProgress.current = targetProgress.current;
-      setDialProgress(targetProgress.current);
-      animFrameId.current = null;
+  // Ruler ticks memo
+  const rulerTicks = useMemo(() => generateRulerTicks(88, 1600), []);
+
+  // Update DOM positions directly for 120 FPS buttery smooth motion
+  const updateDOMPositions = useCallback((progress: number) => {
+    numElementsRef.current.forEach((el, idx) => {
+      if (!el) return;
+      const geo = getArcGeometry(idx, progress);
+      el.style.left = `${geo.xPct}%`;
+      el.style.top = `${geo.yPct}%`;
+      el.style.transform = `translate(-50%, -50%) rotate(${geo.rotDeg}deg) scale(${geo.scale})`;
+      el.style.opacity = `${geo.opacity}`;
+      el.style.zIndex = geo.isCentered ? '30' : '10';
+      el.style.pointerEvents = geo.isCentered ? 'auto' : 'none';
+      if (geo.isCentered) {
+        el.style.filter = 'drop-shadow(0 0 25px rgba(200,149,108,0.3))';
+      } else {
+        el.style.filter = 'none';
+      }
+    });
+
+    // Animate bean mascot with momentum
+    if (beanRef.current) {
+      const deltaCenter = progress - Math.round(progress);
+      beanRef.current.style.transform = `translateY(${Math.sin(progress * Math.PI) * -12}px) rotate(${
+        deltaCenter * 45
+      }deg)`;
     }
   }, []);
 
-  // Discrete 1-Touch Step Navigator: moves exactly 1 step and syncs scroll
+  // Discrete 1-Touch Step Transition with Directional Narrative Slide
   const goToStep = useCallback(
-    (targetStep: number) => {
-      const clamped = Math.max(0, Math.min(2, targetStep));
-      targetProgress.current = clamped;
+    (targetStep: number, syncScroll = true) => {
+      const clamped = Math.max(0, Math.min(CHAPTERS.length - 1, targetStep));
+      const prevStep = activeStepRef.current;
+      if (clamped === prevStep && !isTransitioningRef.current) return;
+      if (isTransitioningRef.current) return;
 
-      // Sync page scroll with the step inside the pinned region.
-      // We rely on lenis.scrollTo to drive the ScrollTrigger progress,
-      // which in turn perfectly synchronizes the dial without stuttering.
-      if (scrollTriggerInstance.current) {
-        const st = scrollTriggerInstance.current;
-        const targetScroll = st.start + (clamped / 2) * PIN_DISTANCE;
+      isTransitioningRef.current = true;
+      lastTransitionTimeRef.current = Date.now();
+      const isMovingRight = clamped > prevStep;
+      activeStepRef.current = clamped;
+      setActiveStep(clamped);
+
+      // Directional narrative text transition:
+      // "if im scrolling right discription fades right , if left fade left"
+      storyElementsRef.current.forEach((el, idx) => {
+        if (!el) return;
+        if (idx === clamped) {
+          // Incoming text glides in from opposite side to 0
+          gsap.killTweensOf(el);
+          gsap.fromTo(
+            el,
+            { opacity: 0, x: isMovingRight ? -45 : 45, pointerEvents: 'auto' },
+            { opacity: 1, x: 0, duration: 0.45, ease: 'power2.out', delay: 0.05 }
+          );
+        } else if (idx === prevStep) {
+          // Outgoing text glides in scroll direction and fades out
+          gsap.killTweensOf(el);
+          gsap.to(el, {
+            opacity: 0,
+            x: isMovingRight ? 45 : -45,
+            duration: 0.35,
+            ease: 'power2.in',
+            pointerEvents: 'none',
+          });
+        } else {
+          gsap.killTweensOf(el);
+          gsap.set(el, { opacity: 0, x: isMovingRight ? 45 : -45, pointerEvents: 'none' });
+        }
+      });
+
+      // Animate progress smoothly along the parabolic arc (snappy 0.45s)
+      gsap.to(progressAnimRef.current, {
+        value: clamped,
+        duration: 0.45,
+        ease: 'power2.out',
+        onUpdate: () => {
+          updateDOMPositions(progressAnimRef.current.value);
+        },
+        onComplete: () => {
+          updateDOMPositions(clamped);
+          isTransitioningRef.current = false;
+        },
+      });
+
+      // Synchronize page scroll position so 03 immediately exits down, and 01 immediately exits up!
+      if (syncScroll && scrollTriggerRef.current) {
+        const st = scrollTriggerRef.current;
+        const totalDist = st.end - st.start;
+        const fraction = clamped / (CHAPTERS.length - 1);
+        const safeOffset = clamped === CHAPTERS.length - 1 ? totalDist - 2 : fraction * totalDist;
+        const targetScroll = st.start + safeOffset;
 
         if (lenis) {
           lenis.scrollTo(targetScroll, {
-            duration: 0.8,
+            duration: 0.45,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            lock: false,
           });
         } else {
           window.scrollTo({ top: targetScroll, behavior: 'smooth' });
         }
-      } else {
-        // Fallback if ScrollTrigger is missing
-        if (animFrameId.current === null) {
-          animFrameId.current = requestAnimationFrame(animateDial);
-        }
       }
     },
-    [lenis, animateDial]
+    [updateDOMPositions, lenis]
   );
 
-  // Pinned ScrollTrigger setup (Starts at Step 01 when section docks at top)
+  // Initialize positions on mount
+  useEffect(() => {
+    updateDOMPositions(0);
+    // Initialize narrative cards: 0 is visible, others hidden to the right
+    storyElementsRef.current.forEach((el, idx) => {
+      if (!el) return;
+      if (idx === 0) {
+        gsap.set(el, { opacity: 1, x: 0, pointerEvents: 'auto' });
+      } else {
+        gsap.set(el, { opacity: 0, x: 45, pointerEvents: 'none' });
+      }
+    });
+  }, [updateDOMPositions]);
+
+  // ScrollTrigger Pinning & 1-Touch Scroll Interceptor
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const ctx = gsap.context(() => {
-      const st = ScrollTrigger.create({
-        trigger: container,
-        start: 'top top',
-        end: `+=${PIN_DISTANCE}`,
-        pin: true,
-        anticipatePin: 1,
-        fastScrollEnd: true,
-        // Soft snap — settles on step boundaries (0 / 0.5 / 1) but with a
-        // long enough duration that it reads as graceful deceleration rather
-        // than a hard track-pad jerk. Remove this entirely if the client
-        // prefers free-scroll with no boundary snapping.
-        snap: {
-          snapTo: [0, 0.5, 1],
-          duration: { min: 0.4, max: 0.8 },
-          ease: 'power1.inOut',
-        },
-        onUpdate: (self) => {
-          // Write target into ref immediately (zero-cost, no re-render).
-          // Flush to React state via rAF so we never block the GSAP tick
-          // with a synchronous render cycle.
-          if (!isDragging.current) {
-            const p = self.progress * 2;
-            targetProgress.current = p;
-            currentProgress.current = p;
-            if (rafFlushId.current !== null) {
-              cancelAnimationFrame(rafFlushId.current);
-            }
-            rafFlushId.current = requestAnimationFrame(() => {
-              setDialProgress(targetProgress.current);
-              rafFlushId.current = null;
-            });
-          }
-        },
-      });
-      scrollTriggerInstance.current = st;
-    }, container);
+    // Pin section with ScrollTrigger with compact 800px runway
+    const st = ScrollTrigger.create({
+      trigger: container,
+      start: 'top top',
+      end: '+=800',
+      pin: true,
+      pinSpacing: true,
+      anticipatePin: 1,
+      onEnter: () => {
+        isPinnedRef.current = true;
+      },
+      onLeave: () => {
+        isPinnedRef.current = false;
+      },
+      onEnterBack: () => {
+        isPinnedRef.current = true;
+        // When scrolling back up into section from below, activate Chapter 03 immediately
+        goToStep(CHAPTERS.length - 1, false);
+      },
+      onLeaveBack: () => {
+        isPinnedRef.current = false;
+      },
+    });
+    scrollTriggerRef.current = st;
+
+    // Wheel gesture interceptor (1 scroll touch = 1 step)
+    const handleWheel = (e: WheelEvent) => {
+      if (!isPinnedRef.current) return;
+      const now = Date.now();
+      // Allow snappy sequential touches after 350ms
+      if (now - lastTransitionTimeRef.current < 350) {
+        if (activeStepRef.current < CHAPTERS.length - 1 && e.deltaY > 0) e.preventDefault();
+        if (activeStepRef.current > 0 && e.deltaY < 0) e.preventDefault();
+        return;
+      }
+
+      // Scroll Down (Advancing right in chapters)
+      if (e.deltaY > 15) {
+        if (activeStepRef.current < CHAPTERS.length - 1) {
+          e.preventDefault();
+          e.stopPropagation();
+          goToStep(activeStepRef.current + 1);
+        }
+        // At step 2 (Chapter 03), do not prevent default!
+        // Scroll position is already at st.end - 2, so the very next scroll down immediately enters VisitUs!
+      }
+      // Scroll Up (Retreating left in chapters)
+      else if (e.deltaY < -15) {
+        if (activeStepRef.current > 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          goToStep(activeStepRef.current - 1);
+        }
+        // At step 0 (Chapter 01), do not prevent default!
+        // Scroll position is already at st.start, so the very next scroll up immediately enters TactileMenu!
+      }
+    };
+
+    // Touch gesture interceptor for tactile phones
+    let touchStartY = 0;
+    let touchStartX = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isPinnedRef.current) return;
+      const deltaY = touchStartY - e.touches[0].clientY;
+      const deltaX = touchStartX - e.touches[0].clientX;
+
+      // Vertical or Horizontal Swipe
+      if (deltaY > 35 || deltaX > 35) {
+        if (activeStepRef.current < CHAPTERS.length - 1) {
+          if (e.cancelable) e.preventDefault();
+          goToStep(activeStepRef.current + 1);
+        }
+      } else if (deltaY < -35 || deltaX < -35) {
+        if (activeStepRef.current > 0) {
+          if (e.cancelable) e.preventDefault();
+          goToStep(activeStepRef.current - 1);
+        }
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
-      ctx.revert();
-      if (animFrameId.current) cancelAnimationFrame(animFrameId.current);
-      if (rafFlushId.current) cancelAnimationFrame(rafFlushId.current);
+      scrollTriggerRef.current = null;
+      st.kill();
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, []);
-
-  // 1-Touch Scroll Interceptors removed: The dial now smoothly tracks native scroll momentum.
-
-  // Pointer drag on track
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('button, a')) return;
-    isDragging.current = true;
-    dragStartX.current = e.clientX;
-    dragStartProgress.current = currentProgress.current;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    const deltaX = e.clientX - dragStartX.current;
-    const trackWidth = trackRef.current?.offsetWidth || window.innerWidth;
-    const stepDelta = -(deltaX / (trackWidth * 0.32));
-    const nextProgress = Math.max(-0.1, Math.min(2.1, dragStartProgress.current + stepDelta));
-    targetProgress.current = nextProgress;
-    currentProgress.current = nextProgress;
-    setDialProgress(nextProgress);
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
-    const snapped = Math.round(Math.max(0, Math.min(2, currentProgress.current)));
-    goToStep(snapped);
-  };
+  }, [goToStep]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') {
-        goToStep(Math.max(0, activeStep - 1));
-      } else if (e.key === 'ArrowRight') {
-        goToStep(Math.min(2, activeStep + 1));
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        goToStep(activeStepRef.current + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        goToStep(activeStepRef.current - 1);
       } else if (e.key === 'Escape' && selectedMonograph) {
         setSelectedMonograph(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeStep, selectedMonograph, goToStep]);
-
-  // Parabolic dome geometry (continuous mathematical interpolation "ribbon physics"):
-  // Tracks exactly to the SVG Bezier curve so the dashed line dead-centers the numerals.
-  const calculateGeometry = (stepIndex: number) => {
-    const delta = stepIndex - dialProgress;
-    const xPct = 50 + delta * 33;
-    const normalizedDist = Math.abs(delta);
-
-    // Exact quadratic Bezier Y calculation matching: M 0 76 Q 600 16 1200 76
-    const t = xPct / 100;
-    const exactY = Math.pow(1 - t, 2) * 76 + 2 * (1 - t) * t * 16 + Math.pow(t, 2) * 76;
-
-    // Tangent slope angle
-    const rotationDeg = delta * 8;
-
-    // Smooth scaling from 1.05 (center) down to 0.65 (edges)
-    const scale = Math.max(0.65, 1.05 - normalizedDist * 0.4);
-
-    // Number opacity: overall fade near the edges, never abruptly pops
-    const opacity = Math.max(0.15, 1.0 - normalizedDist * 0.6);
-
-    // Badge continuous interpolation (fades out and moves down smoothly as it leaves center)
-    const badgeOpacity = Math.max(0, 1 - normalizedDist * 2.5);
-    const badgeTranslateY = normalizedDist * 16;
-    const badgeScale = Math.max(0.85, 1 - normalizedDist * 0.2);
-
-    // Crossfade between Solid Fill (Center) and Wireframe (Sides)
-    const fillOpacity = Math.max(0, 1 - normalizedDist * 1.5);
-    const wireframeOpacity = Math.min(1, normalizedDist * 1.5);
-
-    const isInteractiveCenter = normalizedDist < 0.2;
-
-    return { 
-      delta, 
-      xPct, 
-      exactY, 
-      rotationDeg, 
-      scale, 
-      opacity, 
-      badgeOpacity, 
-      badgeTranslateY, 
-      badgeScale, 
-      fillOpacity, 
-      wireframeOpacity, 
-      isInteractiveCenter 
-    };
-  };
-
-  // Coffee Bean marker: sits at 50% + 9.2% width, perfectly hugging the exact Bezier path
-  const beanGeometry = useMemo(() => {
-    const beanXPct = 50 + 9.2;
-    const t = beanXPct / 100;
-    const exactY = Math.pow(1 - t, 2) * 76 + 2 * (1 - t) * t * 16 + Math.pow(t, 2) * 76;
-    // Roll rotation as dial travels between numbers
-    const rollAngle = 26 + dialProgress * 40;
-    return { beanXPct, exactY, rollAngle };
-  }, [dialProgress]);
-
-  const activeChapter = CHAPTERS[activeStep];
+  }, [goToStep, selectedMonograph]);
 
   return (
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full h-dvh max-h-dvh bg-[#0E0805] text-[#FDF8F3] overflow-x-clip select-none flex flex-col justify-between py-6 sm:py-8"
+      className="relative w-full h-screen bg-[#0E0805] text-[#FDF8F3] select-none overflow-hidden flex flex-col justify-between pt-16 md:pt-20 pb-8"
     >
-      {/* Anchor shim for legacy #about links */}
+      {/* Anchor shim for legacy navigation links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
 
-      {/* Atmospheric warm ambient glow — decays to transparent well before section bounds */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_40%,rgba(200,149,108,0.08)_0%,transparent_70%)]" aria-hidden="true" />
+      {/* Atmospheric ambient warm gold radial glow */}
+      <div
+        className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_45%,rgba(200,149,108,0.08)_0%,transparent_65%)]"
+        aria-hidden="true"
+      />
 
-      {/* 1. TOP HEADER (Pinned high with generous vertical breathing room) */}
-      <header className="relative z-20 text-center px-6 max-w-5xl mx-auto pt-2 md:pt-4">
-        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-[2.85rem] text-[#F5EDE4] font-normal tracking-[0.18em] uppercase leading-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.85)]">
+      {/* ─────────────────────────────────────────────────────────────
+          1. TOP SECTION HEADER (ALWAYS VISIBLE & REFINED)
+          ───────────────────────────────────────────────────────────── */}
+      <header className="relative z-30 text-center px-6 max-w-4xl mx-auto pt-2">
+        <span className="font-mono text-[10px] sm:text-xs text-[#C8956C] uppercase tracking-[0.28em] opacity-90 block mb-1.5">
+          ANALOG CADENCE · MONASTIC PURITY
+        </span>
+        <h2 className="font-display text-2xl sm:text-4xl md:text-5xl font-light text-[#F5EDE4] tracking-[0.14em] uppercase leading-tight drop-shadow-[0_2px_20px_rgba(0,0,0,0.85)]">
           Our Journey of Distillation
         </h2>
       </header>
 
-      {/* 2. CENTRAL DIAL TRACK (Only the numbers, badge, and coffee bean on the curve) */}
+      {/* ─────────────────────────────────────────────────────────────
+          2. FIXED ARC STAGE (NUMBERS RIDE PARABOLIC CURVE AT ALL TIMES)
+          ───────────────────────────────────────────────────────────── */}
       <div
-        ref={trackRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        className="relative z-10 w-full h-[320px] sm:h-[350px] md:h-[380px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none overflow-visible my-auto"
+        ref={stageRef}
+        className="relative z-20 w-full max-w-[1600px] h-[280px] mx-auto my-auto flex items-center justify-center overflow-visible"
       >
-        {/* SVG DELICATE DOTTED GOLD GUIDELINE DOME */}
-        <div className="absolute inset-x-0 top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 h-[120px] pointer-events-none z-0">
+        {/* SVG FIXED PRECISION RULER GAUGE ARC */}
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 flex items-center justify-center">
           <svg
-            className="w-full h-full overflow-visible"
-            viewBox="0 0 1200 120"
-            preserveAspectRatio="none"
+            className="w-full h-full overflow-visible opacity-60"
+            viewBox="0 0 1600 280"
             fill="none"
+            preserveAspectRatio="none"
           >
             <defs>
-              <linearGradient id="goldDottedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#C8956C" stopOpacity="0.08" />
-                <stop offset="15%" stopColor="#D4A373" stopOpacity="0.4" />
+              <linearGradient id="fixedRulerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#C8956C" stopOpacity="0.05" />
+                <stop offset="25%" stopColor="#C8956C" stopOpacity="0.4" />
                 <stop offset="50%" stopColor="#F5EDE4" stopOpacity="0.85" />
-                <stop offset="85%" stopColor="#D4A373" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#C8956C" stopOpacity="0.08" />
+                <stop offset="75%" stopColor="#C8956C" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#C8956C" stopOpacity="0.05" />
               </linearGradient>
             </defs>
-            {/* Parabolic dome: starts at (0, 76), crests at (600, 16), ends at (1200, 76) */}
+
+            {/* Continuous arched datum line: Y(t) = 210 - 320 * t * (1 - t) */}
             <path
-              d="M 0 76 Q 600 16 1200 76"
-              stroke="url(#goldDottedGrad)"
-              strokeWidth="1.8"
-              strokeDasharray="2.5 6.5"
+              d="M 0 210 Q 800 50 1600 210"
+              stroke="url(#fixedRulerGrad)"
+              strokeWidth="1.2"
+              strokeDasharray="3 6"
               strokeLinecap="round"
             />
+
+            {/* Precision Ruler Tick Marks (Bisecting all numbers) */}
+            {rulerTicks.map((tick, idx) => (
+              <g key={idx}>
+                <line
+                  x1={tick.x1}
+                  y1={tick.y1}
+                  x2={tick.x2}
+                  y2={tick.y2}
+                  stroke="url(#fixedRulerGrad)"
+                  strokeWidth={tick.isMajor ? '2' : tick.isMedium ? '1.2' : '0.8'}
+                  strokeLinecap="round"
+                  opacity={tick.isMajor ? 0.9 : tick.isMedium ? 0.6 : 0.35}
+                />
+                {tick.dotX !== undefined && (
+                  <circle
+                    cx={tick.dotX}
+                    cy={tick.dotY}
+                    r="1.2"
+                    fill="#C8956C"
+                    opacity="0.4"
+                  />
+                )}
+              </g>
+            ))}
           </svg>
         </div>
 
-        {/* ROASTED COFFEE BEAN PIN MARKER WITH CONTINUOUS FLOAT & ROLL */}
-        <div
-          className="absolute z-20 pointer-events-none top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 will-change-transform"
-          style={{
-            left: `${beanGeometry.beanXPct}%`,
-            transform: `translate(-50%, calc(-50% + ${beanGeometry.exactY}px)) rotate(${beanGeometry.rollAngle}deg)`,
-          }}
-        >
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[4.5rem] md:h-[4.5rem] animate-float-bean">
-            <img
-              src={singleCoffeeBean}
-              alt="Roasted Coffee Bean Marker"
-              className="w-full h-full object-contain filter drop-shadow-[0_12px_18px_rgba(0,0,0,0.95)] drop-shadow-[0_0_16px_rgba(218,165,96,0.45)]"
-              draggable={false}
-            />
-          </div>
-        </div>
-
-        {/* THREE NUMERALS (01, 02, 03) */}
-        {CHAPTERS.map((chap, idx) => {
-          const geo = calculateGeometry(idx);
-
-          return (
+        {/* NUMERALS CONTAINER: Each numeral is pinned to the arc via Parabolic Math */}
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-visible">
+          {CHAPTERS.map((chap, idx) => (
             <div
               key={chap.id}
-              onClick={() => {
-                if (idx !== activeStep) {
-                  goToStep(idx);
-                }
+              ref={(el) => {
+                numElementsRef.current[idx] = el;
               }}
-              style={{
-                left: `${geo.xPct}%`,
-                // Calculate position so the dashed line exactly pierces the vertical center of the numeral
-                transform: `translate(-50%, calc(-50% + ${geo.exactY}px)) rotate(${geo.rotationDeg}deg) scale(${geo.scale})`,
-                opacity: geo.opacity,
-                willChange: 'transform, opacity',
-              }}
-              className={`absolute top-[180px] sm:top-[195px] md:top-[210px] -translate-y-1/2 flex flex-col items-center justify-center select-none ${
-                geo.isInteractiveCenter
-                  ? 'z-30 cursor-default'
-                  : 'z-10 cursor-pointer hover:opacity-40 transition-opacity'
-              }`}
+              onClick={() => goToStep(idx)}
+              className="absolute flex flex-col items-center justify-center select-none will-change-transform cursor-pointer"
             >
-              {/* CREAM BADGE (Absolutely positioned above the numeral to decouple from document flow) */}
-              <div
-                className="absolute bottom-[80%] pointer-events-none whitespace-nowrap z-40 will-change-transform"
+              <span
+                className="font-sans font-light text-[7.5rem] sm:text-[9rem] md:text-[10.5rem] tracking-tight leading-none"
                 style={{
-                  opacity: geo.badgeOpacity,
-                  transform: `translateY(${geo.badgeTranslateY}px) scale(${geo.badgeScale})`,
-                  display: geo.badgeOpacity > 0.01 ? 'block' : 'none'
+                  WebkitTextStroke: '1.5px rgba(245, 237, 228, 0.75)',
+                  color: 'rgba(245, 237, 228, 0.08)',
                 }}
               >
-                <div className="bg-[#F5EDE4] text-[#1E110A] px-4 py-1 sm:px-5 sm:py-1.5 rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.7)] font-mono text-[11px] sm:text-xs font-bold tracking-[0.22em] uppercase border border-[#FAF3EB]/60">
-                  {chap.badge}
-                </div>
-              </div>
-
-              {/* NUMERAL DISPLAY (Stacked continuous crossfade) */}
-              <div className="relative font-sans font-light tracking-tighter leading-none select-none flex items-center justify-center">
-                {/* 1. SIDES INACTIVE: Delicate wireframe outline */}
-                <span
-                  style={{
-                    WebkitTextStroke: '1.5px rgba(200, 149, 108, 0.45)',
-                    color: 'transparent',
-                    opacity: geo.wireframeOpacity,
-                  }}
-                  className="block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-light will-change-opacity"
-                >
-                  {chap.index}
-                </span>
-
-                {/* 2. CENTER ACTIVE: Solid warm cream fill with luminous ambient gold glow */}
-                <span
-                  style={{
-                    color: '#F5F2ED',
-                    textShadow: '0 0 32px rgba(232, 201, 160, 0.45), 0 0 60px rgba(200, 149, 108, 0.25)',
-                    opacity: geo.fillOpacity,
-                  }}
-                  className="absolute inset-0 block text-[6.5rem] sm:text-[8rem] md:text-[9.5rem] lg:text-[10.5rem] font-medium will-change-opacity flex items-center justify-center"
-                >
-                  {chap.index}
-                </span>
-              </div>
+                {chap.index}
+              </span>
             </div>
-          );
-        })}
-      </div>
+          ))}
 
-      {/* 3. DEDICATED STATIC STORY CONTAINER BELOW THE ARC (Clean, isolated, centered) */}
-      <div className="relative z-20 max-w-xl mx-auto px-6 text-center min-h-[140px] sm:min-h-[150px] flex flex-col items-center justify-center">
-        {/* Animated Story Text with smooth cross-fade */}
-        <div
-          key={activeChapter.id}
-          className="transition-all duration-300 ease-out animate-fade-in"
-        >
-          <p className="font-body text-base sm:text-[1.0625rem] md:text-lg font-medium text-[#E6DFD5] leading-[1.7] max-w-lg mx-auto">
-            {activeChapter.previewText.join(' ')}
-          </p>
-
-          {/* Underlined "LEARN MORE" Button */}
-          <div className="mt-4 sm:mt-5 flex justify-center">
-            <button
-              onClick={() => setSelectedMonograph(activeChapter)}
-              className="group inline-flex items-center gap-2 font-mono text-xs sm:text-sm uppercase tracking-[0.25em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-all duration-300 border-b border-[#C8956C]/60 hover:border-[#FDF8F3] pb-1 cursor-pointer"
-            >
-              <span>LEARN MORE</span>
-              <ArrowUpRight
-                size={14}
-                className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+          {/* ROASTED COFFEE BEAN MASCOT: Anchored beside active center numeral */}
+          <div
+            ref={beanRef}
+            className="absolute left-[calc(50%+85px)] top-[calc(46.43%-10px)] -translate-y-1/2 z-20 pointer-events-none will-change-transform"
+          >
+            <div className="w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 animate-float-bean">
+              <img
+                src={singleCoffeeBean}
+                alt="Roasted Bean Marker"
+                className="w-full h-full object-contain filter drop-shadow-[0_10px_18px_rgba(0,0,0,0.95)] drop-shadow-[0_0_15px_rgba(200,149,108,0.35)]"
+                draggable={false}
               />
-            </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 4. ALWAYS-VISIBLE NAVIGATION BAR & DIAL INDICATORS (Guaranteed within 100vh) */}
-      <footer className="relative z-30 flex items-center justify-between px-6 sm:px-12 max-w-md mx-auto w-full pt-1 pb-2">
-        {/* Prev Arrow */}
+      {/* ─────────────────────────────────────────────────────────────
+          3. CENTERED READING POCKET (STORY TEXT CROSSFADES IN PLACE)
+          ───────────────────────────────────────────────────────────── */}
+      <div className="relative z-30 w-full max-w-xl mx-auto px-6 text-center min-h-[140px] flex items-center justify-center mb-4">
+        {CHAPTERS.map((chap, idx) => (
+          <div
+            key={chap.id}
+            ref={(el) => {
+              storyElementsRef.current[idx] = el;
+            }}
+            className="absolute inset-0 flex flex-col items-center justify-center select-none will-change-transform"
+          >
+            {/* Cream Pill Badge */}
+            <div className="mb-2.5">
+              <span className="inline-block bg-[#F5EDE4] text-[#1E110A] px-4 py-1 rounded-full font-mono text-[10px] sm:text-xs font-bold tracking-[0.24em] uppercase shadow-[0_4px_16px_rgba(0,0,0,0.7)] border border-[#FAF3EB]/50">
+                {chap.badge}
+              </span>
+            </div>
+
+            {/* Story Narrative Paragraph */}
+            <p className="font-body text-xs sm:text-sm md:text-base font-normal text-[#E6DFD5] leading-[1.65] max-w-md mx-auto">
+              {chap.previewText.join(' ')}
+            </p>
+
+            {/* Monograph Button */}
+            <div className="mt-2.5">
+              <button
+                onClick={() => setSelectedMonograph(chap)}
+                className="group inline-flex items-center gap-1.5 font-mono text-[11px] sm:text-xs uppercase tracking-[0.22em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-colors border-b border-[#C8956C]/50 hover:border-[#FDF8F3] pb-0.5 cursor-pointer"
+              >
+                <span>READ ARCHIVE MONOGRAPH</span>
+                <ArrowUpRight
+                  size={13}
+                  className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          4. ALWAYS-ACCESSIBLE BOTTOM ARROW CONTROLS & DIAL INDICATORS
+          ───────────────────────────────────────────────────────────── */}
+      <footer className="relative z-30 flex items-center justify-between px-6 max-w-md mx-auto w-full pt-2">
+        {/* Prev Chapter Arrow */}
         <button
-          onClick={() => goToStep(Math.max(0, activeStep - 1))}
+          onClick={() => goToStep(activeStep - 1)}
           disabled={activeStep === 0}
-          aria-label="Previous step"
+          aria-label="Previous chapter"
           className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
             activeStep === 0
               ? 'opacity-20 cursor-not-allowed'
-              : 'hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer'
+              : 'bg-black/30 hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer active:scale-95'
           }`}
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} />
         </button>
 
-        {/* Vintage Dial Indicators */}
+        {/* Vintage Dial Indicator Dots */}
         <div className="flex items-center gap-3">
           {CHAPTERS.map((chap, i) => (
             <button
               key={chap.id}
               onClick={() => goToStep(i)}
               className="group flex items-center gap-2 p-1 cursor-pointer"
-              aria-label={`Jump to step ${chap.index}`}
+              aria-label={`Jump to chapter ${chap.index}`}
             >
               <span
-                className={`h-1.5 rounded-full transition-all duration-300 ${
+                className={`h-1.5 rounded-full transition-all duration-400 ${
                   i === activeStep
                     ? 'w-8 bg-[#E8C9A0] shadow-[0_0_8px_rgba(232,201,160,0.6)]'
                     : 'w-2 bg-[#C8956C]/30 group-hover:bg-[#C8956C]/60'
@@ -536,22 +646,24 @@ export default function EditorialStory() {
           ))}
         </div>
 
-        {/* Next Arrow */}
+        {/* Next Chapter Arrow */}
         <button
-          onClick={() => goToStep(Math.min(2, activeStep + 1))}
-          disabled={activeStep === 2}
-          aria-label="Next step"
+          onClick={() => goToStep(activeStep + 1)}
+          disabled={activeStep === CHAPTERS.length - 1}
+          aria-label="Next chapter"
           className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
-            activeStep === 2
+            activeStep === CHAPTERS.length - 1
               ? 'opacity-20 cursor-not-allowed'
-              : 'hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer'
+              : 'bg-black/30 hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer active:scale-95'
           }`}
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={20} />
         </button>
       </footer>
 
-      {/* EDITORIAL MONOGRAPH ARCHIVE MODAL */}
+      {/* ─────────────────────────────────────────────────────────────
+          5. EDITORIAL MONOGRAPH ARCHIVE MODAL
+          ───────────────────────────────────────────────────────────── */}
       {selectedMonograph && (
         <div
           className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 md:p-10 bg-black/85 backdrop-blur-md animate-fade-in"

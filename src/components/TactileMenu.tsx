@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Sparkles, Plus, Check, Droplet, ArrowRight, Layers } from 'lucide-react';
-import { gsap } from '../lib/gsap';
+import { gsap, ScrollTrigger } from '../lib/gsap';
 import { useLenis } from '../context/LenisContext';
 
 import cappuccinoCup from '../assets/images/hero/cappuccino-cup.webp';
@@ -91,6 +91,7 @@ export default function TactileMenu() {
   const deckRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const lenis = useLenis();
+  const scrollTriggerRef = useRef<ScrollTrigger | null>(null);
 
   const [orderedId, setOrderedId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -98,22 +99,32 @@ export default function TactileMenu() {
   // Smooth jump to specific card when clicking its header tab
   const handleCardClick = useCallback(
     (cardIndex: number) => {
-      if (!containerRef.current) return;
       const totalCards = EXTRACTIONS.length;
       if (totalCards <= 1) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const scrollY = window.scrollY || window.pageYOffset;
-      const containerTop = rect.top + scrollY;
-      const scrollDistance = containerRef.current.offsetHeight - window.innerHeight;
+      const fraction = cardIndex / (totalCards - 1);
+      let targetScroll: number;
 
-      // Card 0 is at start (0%), cards 1..3 mapped across [0.08, 0.95]
-      const fraction = cardIndex === 0 ? 0 : (cardIndex / (totalCards - 1)) * 0.92;
-      const targetScroll = containerTop + fraction * scrollDistance;
+      if (scrollTriggerRef.current) {
+        const st = scrollTriggerRef.current;
+        const totalDist = st.end - st.start;
+        // If jumping to the final card, stay 2px inside the section bounds so it doesn't unstick
+        const safeOffset = cardIndex === totalCards - 1 ? totalDist - 2 : fraction * totalDist;
+        targetScroll = st.start + safeOffset;
+      } else if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
+        const containerTop = rect.top + scrollY;
+        const scrollDistance = containerRef.current.offsetHeight - window.innerHeight;
+        const safeOffset = cardIndex === totalCards - 1 ? scrollDistance - 2 : fraction * scrollDistance;
+        targetScroll = containerTop + safeOffset;
+      } else {
+        return;
+      }
 
       if (lenis) {
         lenis.scrollTo(targetScroll, {
-          duration: 0.9,
+          duration: 0.8,
           easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         });
       } else {
@@ -156,23 +167,25 @@ export default function TactileMenu() {
       // no dead-zone: card 1 runs [0, 1/3], card 2 [1/3, 2/3], card 3 [2/3, 1].
       const sliceDuration = 3 / count; // total timeline units = 3
 
-      // scrub: 0.4 balances crisp real-time tracking with enough inertia
-      // smoothing to feel premium on both wheel and trackpad input.
+      // scrub: true directly locks card motion to the Lenis-smoothed scroll
+      // preventing any double-inertia or rubberband delay.
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: container,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: 0.4,
+          scrub: true,
           invalidateOnRefresh: true,
         },
       });
 
+      scrollTriggerRef.current = tl.scrollTrigger ?? null;
+
       // Card 0 stays anchored at top 0.
       gsap.set(cardElements[0], { y: 0, zIndex: 10 });
 
-      // Distribute remaining cards evenly so the last card settles just
-      // before progress = 1 (no dead-zone at the end of the section).
+      // Distribute remaining cards evenly so each card enters linearly with scroll
+      // eliminating stutter and dead-zones.
       movingCards.forEach((card, i) => {
         const cardIndex = i + 1; // original index in EXTRACTIONS
         const targetY = cardIndex * tabHeight;
@@ -186,7 +199,7 @@ export default function TactileMenu() {
           {
             yPercent: 0,
             y: targetY,
-            ease: 'power1.inOut',
+            ease: 'none',
             duration: sliceDuration,
           },
           startOffset
@@ -195,6 +208,7 @@ export default function TactileMenu() {
     }, container);
 
     return () => {
+      scrollTriggerRef.current = null;
       ctx.revert();
     };
   }, []);

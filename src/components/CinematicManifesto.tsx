@@ -27,9 +27,8 @@ export default function CinematicManifesto() {
           opacity: 0.35,
           ease: 'none',
           scrollTrigger: {
-            trigger: heroEl,
-            start: 'top top',
-            endTrigger: container,
+            trigger: container,
+            start: 'top bottom',
             end: 'top top',
             scrub: true,
             onLeave: () => {
@@ -56,7 +55,7 @@ export default function CinematicManifesto() {
           trigger: container,
           start: 'top 55%',     // Begins when Manifesto ascends past lower half of viewport
           end: 'top top',       // Finishes right as Manifesto reaches the top
-          scrub: 0.8,
+          scrub: true,
           onUpdate: (self) => {
             if (progressLineRef.current) {
               progressLineRef.current.style.transform = `scaleX(${self.progress})`;
