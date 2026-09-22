@@ -38,6 +38,7 @@ export function LenisProvider({ children, paused = false, onReady }: LenisProvid
 
     // Keep Lenis scroll dimensions synchronized with ScrollTrigger pin-spacers
     const onScrollTriggerRefresh = () => {
+      console.log('[ST refresh]', { time: Date.now() });
       lenis.resize();
     };
     ScrollTrigger.addEventListener('refresh', onScrollTriggerRefresh);

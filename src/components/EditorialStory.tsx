@@ -6,7 +6,6 @@ import { Compass, Clock, VolumeX, ArrowUpRight, X, ChevronLeft, ChevronRight, Sp
 import qualityCoffeeImg from '../assets/images/features/quality-coffee.jpg';
 import freshDeliciousImg from '../assets/images/features/fresh-delicious.jpg';
 import cozyAtmosphereImg from '../assets/images/features/cozy-atmosphere.jpg';
-import singleCoffeeBean from '../assets/images/hero/single-coffee-bean.webp';
 
 interface Chapter {
   id: string;
@@ -183,7 +182,6 @@ export default function EditorialStory() {
   const stageRef = useRef<HTMLDivElement>(null);
   const numElementsRef = useRef<(HTMLDivElement | null)[]>([]);
   const storyElementsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const beanRef = useRef<HTMLDivElement>(null);
   const lenis = useLenis();
   const scrollTriggerRef = useRef<ScrollTrigger | null>(null);
 
@@ -191,10 +189,10 @@ export default function EditorialStory() {
   const [activeStep, setActiveStep] = useState(0);
   const activeStepRef = useRef(0);
   const progressAnimRef = useRef<{ value: number }>({ value: 0 });
-  const isTransitioningRef = useRef(false);
-  const isPinnedRef = useRef(false);
-  const isGestureActiveRef = useRef(false);
-  const gestureTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAnimatingRef = useRef(false);
+  const isInsideRef = useRef(false);
+  const momentumTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Monograph Modal state
   const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
@@ -219,35 +217,24 @@ export default function EditorialStory() {
         el.style.filter = 'none';
       }
     });
-
-    // Animate bean mascot with momentum
-    if (beanRef.current) {
-      const deltaCenter = progress - Math.round(progress);
-      beanRef.current.style.transform = `translateY(${Math.sin(progress * Math.PI) * -12}px) rotate(${
-        deltaCenter * 45
-      }deg)`;
-    }
   }, []);
 
   // Discrete 1-Touch Step Transition with Directional Narrative Slide
   const goToStep = useCallback(
-    (targetStep: number, syncScroll = true) => {
+    (targetStep: number) => {
       const clamped = Math.max(0, Math.min(CHAPTERS.length - 1, targetStep));
       const prevStep = activeStepRef.current;
-      if (clamped === prevStep && !isTransitioningRef.current) return;
-      if (isTransitioningRef.current) return;
+      if (clamped === prevStep) return;
 
-      isTransitioningRef.current = true;
+      isAnimatingRef.current = true;
       const isMovingRight = clamped > prevStep;
       activeStepRef.current = clamped;
       setActiveStep(clamped);
 
-      // Directional narrative text transition:
-      // "if im scrolling right discription fades right , if left fade left"
+      // Directional narrative text transition
       storyElementsRef.current.forEach((el, idx) => {
         if (!el) return;
         if (idx === clamped) {
-          // Incoming text glides in from opposite side to 0
           gsap.killTweensOf(el);
           gsap.fromTo(
             el,
@@ -255,7 +242,6 @@ export default function EditorialStory() {
             { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out', delay: 0.05 }
           );
         } else if (idx === prevStep) {
-          // Outgoing text glides in scroll direction and fades out
           gsap.killTweensOf(el);
           gsap.to(el, {
             opacity: 0,
@@ -270,45 +256,104 @@ export default function EditorialStory() {
         }
       });
 
-      // Animate progress smoothly along the parabolic arc (snappy 0.4s)
+      // Animate progress smoothly along the parabolic arc (snappy 0.45s)
+      gsap.killTweensOf(progressAnimRef.current);
       gsap.to(progressAnimRef.current, {
         value: clamped,
-        duration: 0.4,
+        duration: 0.45,
         ease: 'power2.out',
         onUpdate: () => {
           updateDOMPositions(progressAnimRef.current.value);
         },
         onComplete: () => {
           updateDOMPositions(clamped);
-          isTransitioningRef.current = false;
+          // Block scroll until animation complete AND momentum settles
+          if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
+          momentumTimerRef.current = setTimeout(() => {
+            isAnimatingRef.current = false;
+          }, 150);
         },
       });
 
-      // Synchronize page scroll position instantly so 03 immediately exits down, and 01 immediately exits up!
-      if (syncScroll && scrollTriggerRef.current) {
-        const st = scrollTriggerRef.current;
-        const totalDist = st.end - st.start;
-        const fraction = clamped / (CHAPTERS.length - 1);
-        const safeOffset = clamped === CHAPTERS.length - 1 ? totalDist - 2 : fraction * totalDist;
-        const targetScroll = st.start + safeOffset;
-
-        if (lenis) {
-          lenis.scrollTo(targetScroll, {
-            immediate: true,
-            lock: false,
-          });
-        } else {
-          window.scrollTo({ top: targetScroll });
-        }
-      }
+      // Safety timeout in case of animation interruption
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = setTimeout(() => {
+        isAnimatingRef.current = false;
+      }, 650);
     },
-    [updateDOMPositions, lenis]
+    [updateDOMPositions]
   );
+
+  // Helper to lock scroll and apply scrollbar suppressor class
+  const lockScroll = useCallback((source: string) => {
+    console.log('[lockScroll]', { source, scrollY: window.scrollY, isInside: isInsideRef.current });
+    isInsideRef.current = true;
+    document.documentElement.classList.add('scroll-locked');
+    if (lenis) lenis.stop();
+  }, [lenis]);
+
+  // Helper to unlock scroll and restore native scrollbar
+  const unlockScroll = useCallback((source: string) => {
+    console.log('[unlockScroll]', { source, scrollY: window.scrollY, isInside: isInsideRef.current });
+    isInsideRef.current = false;
+    isAnimatingRef.current = false;
+    document.documentElement.classList.remove('scroll-locked');
+    if (lenis) lenis.start();
+  }, [lenis]);
+
+  // Scroll to Next Section (Visit Us)
+  const exitToNextSection = useCallback(() => {
+    unlockScroll('exitToNextSection');
+    const visit = document.getElementById('visit');
+    if (lenis) {
+      if (visit) {
+        lenis.scrollTo(visit, { duration: 0.8 });
+      } else if (containerRef.current) {
+        lenis.scrollTo(containerRef.current.offsetTop + containerRef.current.offsetHeight + 10, { duration: 0.8 });
+      }
+    } else {
+      document.getElementById('visit')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [lenis, unlockScroll]);
+
+  // Scroll to Prev Section (Tactile Menu)
+  const exitToPrevSection = useCallback(() => {
+    unlockScroll('exitToPrevSection');
+    const menu = document.getElementById('menu');
+    if (lenis) {
+      if (menu) {
+        lenis.scrollTo(menu, { duration: 0.8 });
+      } else if (containerRef.current) {
+        lenis.scrollTo(Math.max(0, containerRef.current.offsetTop - window.innerHeight), { duration: 0.8 });
+      }
+    } else {
+      document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [lenis, unlockScroll]);
+
+  // Scroll bottom acts as single touch on Right Arrow
+  const handleNext = useCallback(() => {
+    if (isAnimatingRef.current) return;
+    if (activeStepRef.current < CHAPTERS.length - 1) {
+      goToStep(activeStepRef.current + 1);
+    } else {
+      exitToNextSection();
+    }
+  }, [goToStep, exitToNextSection]);
+
+  // Scroll top acts as single touch on Left Arrow
+  const handlePrev = useCallback(() => {
+    if (isAnimatingRef.current) return;
+    if (activeStepRef.current > 0) {
+      goToStep(activeStepRef.current - 1);
+    } else {
+      exitToPrevSection();
+    }
+  }, [goToStep, exitToPrevSection]);
 
   // Initialize positions on mount
   useEffect(() => {
     updateDOMPositions(0);
-    // Initialize narrative cards: 0 is visible, others hidden to the right
     storyElementsRef.current.forEach((el, idx) => {
       if (!el) return;
       if (idx === 0) {
@@ -319,170 +364,160 @@ export default function EditorialStory() {
     });
   }, [updateDOMPositions]);
 
-  // ScrollTrigger Pinning & 1-Touch Scroll Interceptor with Gesture Idle Lock
+  // ScrollTrigger & Arrow-Touch Scroll Interceptor
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Pin section with ScrollTrigger with compact 600px runway
     const st = ScrollTrigger.create({
       trigger: container,
       start: 'top top',
-      end: '+=600',
-      pin: true,
-      pinSpacing: true,
-      anticipatePin: 1,
-      onEnter: () => {
-        isPinnedRef.current = true;
+      end: 'bottom top',
+      onUpdate: (self) => console.log('[ST update]', { progress: self.progress, direction: self.direction, isActive: self.isActive, scrollY: window.scrollY }),
+      onEnter: (self) => {
+        console.log('[ST]', 'onEnter', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+        activeStepRef.current = 0;
+        setActiveStep(0);
+        updateDOMPositions(0);
+        if (lenis) {
+          lenis.scrollTo(self.start, {
+            immediate: true,
+            lock: true,
+            onComplete: () => {
+              lockScroll('onEnter');
+            },
+          });
+        } else {
+          lockScroll('onEnter');
+        }
       },
-      onLeave: () => {
-        isPinnedRef.current = false;
+      onEnterBack: (self) => {
+        console.log('[ST]', 'onEnterBack', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+        activeStepRef.current = CHAPTERS.length - 1;
+        setActiveStep(CHAPTERS.length - 1);
+        updateDOMPositions(CHAPTERS.length - 1);
+        if (lenis) {
+          lenis.scrollTo(self.start, {
+            immediate: false,
+            duration: 0.6,
+            lock: true,
+            onComplete: () => {
+              lockScroll('onEnterBack');
+            },
+          });
+        } else {
+          lockScroll('onEnterBack');
+        }
       },
-      onEnterBack: () => {
-        isPinnedRef.current = true;
-        // When scrolling back up into section from below, activate Chapter 03 immediately
-        goToStep(CHAPTERS.length - 1, false);
+      onLeave: (self) => {
+        console.log('[ST]', 'onLeave', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+        unlockScroll('onLeave');
       },
-      onLeaveBack: () => {
-        isPinnedRef.current = false;
+      onLeaveBack: (self) => {
+        console.log('[ST]', 'onLeaveBack', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+        unlockScroll('onLeaveBack');
       },
     });
     scrollTriggerRef.current = st;
 
-    // Gesture-Lock Wheel Interceptor:
-    // Guarantees ONE physical wheel flick advances EXACTLY 1 CHAPTER, never skipping!
+    // Wheel event handler:
+    // Scroll bottom -> single touch on right arrow
+    // Scroll top -> single touch on left arrow
+    // Blocks scroll until animation completes!
     const handleWheel = (e: WheelEvent) => {
-      if (!isPinnedRef.current) return;
+      if (!isInsideRef.current || selectedMonograph) return;
 
-      // 1. If no gesture is currently active, process the new intentional scroll:
-      if (!isGestureActiveRef.current) {
-        if (e.deltaY > 15) {
-          // Scrolling down (towards next chapter)
-          if (activeStepRef.current < CHAPTERS.length - 1) {
-            e.preventDefault();
-            e.stopPropagation();
-            isGestureActiveRef.current = true;
-            goToStep(activeStepRef.current + 1);
-          } else {
-            // Already at Chapter 03 -> allow natural scroll down into VisitUs!
-            return;
-          }
-        } else if (e.deltaY < -15) {
-          // Scrolling up (towards prev chapter)
-          if (activeStepRef.current > 0) {
-            e.preventDefault();
-            e.stopPropagation();
-            isGestureActiveRef.current = true;
-            goToStep(activeStepRef.current - 1);
-          } else {
-            // Already at Chapter 01 -> allow natural scroll up into TactileMenu!
-            return;
-          }
-        }
-      } else {
-        // 2. Gesture is still active (wheel inertia / momentum ticks from the fast flick):
-        // Consume all events so the ongoing fast spin CANNOT skip multiple numbers!
-        if (
-          (activeStepRef.current < CHAPTERS.length - 1 && e.deltaY > 0) ||
-          (activeStepRef.current > 0 && e.deltaY < 0)
-        ) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
+      e.preventDefault();
+      e.stopPropagation();
+
+      // If animation is in progress, absorb ongoing momentum ticks
+      if (isAnimatingRef.current) {
+        if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
+        momentumTimerRef.current = setTimeout(() => {
+          isAnimatingRef.current = false;
+        }, 150);
+        return;
       }
 
-      // 3. Reset gesture active flag ONLY after wheel completely stops spinning (180ms of silence)
-      if (gestureTimeoutRef.current) {
-        clearTimeout(gestureTimeoutRef.current);
+      if (e.deltaY > 5) {
+        handleNext();
+      } else if (e.deltaY < -5) {
+        handlePrev();
       }
-      gestureTimeoutRef.current = setTimeout(() => {
-        isGestureActiveRef.current = false;
-      }, 180);
     };
 
-    // Touch gesture interceptor for tactile phones
+    // Touch event handler for mobile/tablet swipes
     let touchStartY = 0;
     let touchStartX = 0;
-    let isTouchActive = false;
 
     const handleTouchStart = (e: TouchEvent) => {
+      if (!isInsideRef.current || selectedMonograph) return;
       touchStartY = e.touches[0].clientY;
       touchStartX = e.touches[0].clientX;
-      isTouchActive = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPinnedRef.current) return;
-
-      if (isTouchActive) {
-        if (
-          (activeStepRef.current < CHAPTERS.length - 1 && touchStartY - e.touches[0].clientY > 0) ||
-          (activeStepRef.current > 0 && touchStartY - e.touches[0].clientY < 0)
-        ) {
-          if (e.cancelable) e.preventDefault();
-        }
-        return;
-      }
+      if (!isInsideRef.current || selectedMonograph) return;
 
       const deltaY = touchStartY - e.touches[0].clientY;
       const deltaX = touchStartX - e.touches[0].clientX;
 
-      // Vertical or Horizontal Swipe
-      if (deltaY > 35 || deltaX > 35) {
-        if (activeStepRef.current < CHAPTERS.length - 1) {
-          if (e.cancelable) e.preventDefault();
-          isTouchActive = true;
-          goToStep(activeStepRef.current + 1);
-        }
-      } else if (deltaY < -35 || deltaX < -35) {
-        if (activeStepRef.current > 0) {
-          if (e.cancelable) e.preventDefault();
-          isTouchActive = true;
-          goToStep(activeStepRef.current - 1);
-        }
+      if (Math.abs(deltaY) > 10 || Math.abs(deltaX) > 10) {
+        if (e.cancelable) e.preventDefault();
       }
-    };
 
-    const handleTouchEnd = () => {
-      isTouchActive = false;
+      if (isAnimatingRef.current) return;
+
+      // Vertical or Horizontal Swipe Threshold
+      if (deltaY > 30 || deltaX > 30) {
+        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+        handleNext();
+      } else if (deltaY < -30 || deltaX < -30) {
+        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+        handlePrev();
+      }
     };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
-      if (gestureTimeoutRef.current) clearTimeout(gestureTimeoutRef.current);
+      unlockScroll('unmount');
+      if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       scrollTriggerRef.current = null;
       st.kill();
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [goToStep]);
+  }, [exitToNextSection, exitToPrevSection, goToStep, handleNext, handlePrev, lenis, lockScroll, selectedMonograph, unlockScroll, updateDOMPositions]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isInsideRef.current && !selectedMonograph) return;
+
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        goToStep(activeStepRef.current + 1);
+        handleNext();
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        goToStep(activeStepRef.current - 1);
+        handlePrev();
       } else if (e.key === 'Escape' && selectedMonograph) {
         setSelectedMonograph(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToStep, selectedMonograph]);
+  }, [handleNext, handlePrev, selectedMonograph]);
 
   return (
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full h-screen bg-[#0E0805] text-[#FDF8F3] select-none overflow-hidden flex flex-col justify-between pt-16 md:pt-20 pb-8"
+      className="relative w-full h-screen h-dvh bg-[#0E0805] text-[#FDF8F3] select-none overflow-hidden flex flex-col justify-between pt-16 md:pt-20 pb-8"
     >
       {/* Anchor shim for legacy navigation links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
@@ -588,21 +623,6 @@ export default function EditorialStory() {
               </span>
             </div>
           ))}
-
-          {/* ROASTED COFFEE BEAN MASCOT: Anchored beside active center numeral */}
-          <div
-            ref={beanRef}
-            className="absolute left-[calc(50%+85px)] top-[calc(46.43%-10px)] -translate-y-1/2 z-20 pointer-events-none will-change-transform"
-          >
-            <div className="w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 animate-float-bean">
-              <img
-                src={singleCoffeeBean}
-                alt="Roasted Bean Marker"
-                className="w-full h-full object-contain filter drop-shadow-[0_10px_18px_rgba(0,0,0,0.95)] drop-shadow-[0_0_15px_rgba(200,149,108,0.35)]"
-                draggable={false}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -653,7 +673,7 @@ export default function EditorialStory() {
       <footer className="relative z-30 flex items-center justify-between px-6 max-w-md mx-auto w-full pt-2">
         {/* Prev Chapter Arrow */}
         <button
-          onClick={() => goToStep(activeStep - 1)}
+          onClick={handlePrev}
           disabled={activeStep === 0}
           aria-label="Previous chapter"
           className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
@@ -687,7 +707,7 @@ export default function EditorialStory() {
 
         {/* Next Chapter Arrow */}
         <button
-          onClick={() => goToStep(activeStep + 1)}
+          onClick={handleNext}
           disabled={activeStep === CHAPTERS.length - 1}
           aria-label="Next chapter"
           className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${

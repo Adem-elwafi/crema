@@ -66,6 +66,11 @@ html {
   }
 }
 
+/* Lock native scrollbar during section takeover */
+html.scroll-locked {
+  overflow: hidden !important;
+}
+
 /* Hero Diagonal Split: Vertical split on desktop, inclined middle split on <=954px */
 @media (min-width: 955px) {
   .hero-split-dark {
@@ -160,5 +165,15 @@ html {
 
 .animate-float-bean {
   animation: float-bean 3.2s ease-in-out infinite;
+}
+
+/* Tactile film grain overlay (high performance, 0ms CPU overhead) */
+.bg-film-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Ambient text bloom for highlighted words */
+.text-glow-amber {
+  text-shadow: 0 0 20px rgba(200, 149, 108, 0.45), 0 0 40px rgba(200, 149, 108, 0.2);
 }
 
