@@ -305,12 +305,8 @@ export default function EditorialStory() {
   const exitToNextSection = useCallback(() => {
     unlockScroll('exitToNextSection');
     const visit = document.getElementById('visit');
-    if (lenis) {
-      if (visit) {
-        lenis.scrollTo(visit, { duration: 0.8 });
-      } else if (containerRef.current) {
-        lenis.scrollTo(containerRef.current.offsetTop + containerRef.current.offsetHeight + 10, { duration: 0.8 });
-      }
+    if (lenis && visit) {
+      lenis.scrollTo(visit, { duration: 0.8 });
     } else {
       document.getElementById('visit')?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -337,9 +333,10 @@ export default function EditorialStory() {
     if (activeStepRef.current < CHAPTERS.length - 1) {
       goToStep(activeStepRef.current + 1);
     } else {
-      exitToNextSection();
+      // At Chapter 03: unlock scroll so VisitUs can curtain up over EditorialStory naturally!
+      unlockScroll('handleNext:curtainUp');
     }
-  }, [goToStep, exitToNextSection]);
+  }, [goToStep, unlockScroll]);
 
   // Scroll top acts as single touch on Left Arrow
   const handlePrev = useCallback(() => {
@@ -369,52 +366,33 @@ export default function EditorialStory() {
     const container = containerRef.current;
     if (!container) return;
 
+    const wrapper = document.getElementById('story-wrapper') || container;
+
     const st = ScrollTrigger.create({
-      trigger: container,
+      trigger: wrapper,
       start: 'top top',
-      end: 'bottom top',
-      onUpdate: (self) => console.log('[ST update]', { progress: self.progress, direction: self.direction, isActive: self.isActive, scrollY: window.scrollY }),
-      onEnter: (self) => {
-        console.log('[ST]', 'onEnter', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+      end: () => `+=${window.innerHeight}`,
+      onEnter: () => {
         activeStepRef.current = 0;
         setActiveStep(0);
         updateDOMPositions(0);
-        if (lenis) {
-          lenis.scrollTo(self.start, {
-            immediate: true,
-            lock: true,
-            onComplete: () => {
-              lockScroll('onEnter');
-            },
-          });
-        } else {
-          lockScroll('onEnter');
+        lockScroll('onEnter');
+      },
+      onUpdate: (self) => {
+        // When scrolling UP from VisitUs:
+        // As soon as VisitUs has descended and EditorialStory is fully back in view (progress <= 0.05),
+        // lock scroll at Chapter 03 so the user can cycle back through the chapters!
+        if (self.direction === -1 && self.progress > 0 && self.progress <= 0.05 && !isInsideRef.current) {
+          activeStepRef.current = CHAPTERS.length - 1;
+          setActiveStep(CHAPTERS.length - 1);
+          updateDOMPositions(CHAPTERS.length - 1);
+          lockScroll('returnFromVisit');
         }
       },
-      onEnterBack: (self) => {
-        console.log('[ST]', 'onEnterBack', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
-        activeStepRef.current = CHAPTERS.length - 1;
-        setActiveStep(CHAPTERS.length - 1);
-        updateDOMPositions(CHAPTERS.length - 1);
-        if (lenis) {
-          lenis.scrollTo(self.start, {
-            immediate: false,
-            duration: 0.6,
-            lock: true,
-            onComplete: () => {
-              lockScroll('onEnterBack');
-            },
-          });
-        } else {
-          lockScroll('onEnterBack');
-        }
-      },
-      onLeave: (self) => {
-        console.log('[ST]', 'onLeave', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+      onLeave: () => {
         unlockScroll('onLeave');
       },
-      onLeaveBack: (self) => {
-        console.log('[ST]', 'onLeaveBack', { scrollY: window.scrollY, stStart: self.start, stEnd: self.end, progress: self.progress, direction: self.direction, isInsideRef: isInsideRef.current });
+      onLeaveBack: () => {
         unlockScroll('onLeaveBack');
       },
     });

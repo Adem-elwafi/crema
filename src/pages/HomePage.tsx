@@ -73,21 +73,27 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* TactileMenu + EditorialStory: downstream dark sections */}
+          {/* TactileMenu: downstream dark section */}
           <div className="relative z-10">
             <TactileMenu />
-            <EditorialStory />
+          </div>
+
+          {/* EditorialStory + Downstream: EditorialStory is sticky; VisitUs ascends and curtains over it */}
+          <div id="story-wrapper" className="relative z-10 w-full">
+            <div className="sticky top-0 z-0 h-dvh w-full overflow-hidden">
+              <EditorialStory />
+            </div>
+            <div className="relative z-10">
+              <Suspense fallback={null}>
+                <LazyContentReady>
+                  <VisitUs />
+                  <Newsletter />
+                  <Footer />
+                </LazyContentReady>
+              </Suspense>
+            </div>
           </div>
         </div>
-
-        {/* ─── Downstream light sections ──────────────────────────────────────── */}
-        <Suspense fallback={null}>
-          <LazyContentReady>
-            <VisitUs />
-            <Newsletter />
-            <Footer />
-          </LazyContentReady>
-        </Suspense>
       </div>
     </LenisProvider>
   );
