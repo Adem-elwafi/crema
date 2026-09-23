@@ -187,18 +187,15 @@ export default function EditorialStory() {
 
   // Active step (0, 1, 2)
   const [activeStep, setActiveStep] = useState(0);
-  const activeStepRef = useRef(0);
-  const progressAnimRef = useRef<{ value: number }>({ value: 0 });
-  const isAnimatingRef = useRef(false);
-  const isInsideRef = useRef(false);
-  const momentumTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Monograph Modal state
   const [selectedMonograph, setSelectedMonograph] = useState<Chapter | null>(null);
 
   // Ruler ticks memo
   const rulerTicks = useMemo(() => generateRulerTicks(88, 1600), []);
+
+  const dotsRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const activeStepRef = useRef(0);
 
   // Update DOM positions directly for 120 FPS buttery smooth motion
   const updateDOMPositions = useCallback((progress: number) => {
@@ -219,277 +216,178 @@ export default function EditorialStory() {
     });
   }, []);
 
-  // Discrete 1-Touch Step Transition with Directional Narrative Slide
+  // Update dial dots continuously with scroll progress
+  const updateDots = useCallback((progress: number) => {
+    dotsRef.current.forEach((dot, idx) => {
+      if (!dot) return;
+      const dist = Math.abs(progress - idx);
+      const factor = Math.max(0, 1 - dist); // 1 when centered, 0 when >= 1 step away
+      const width = 8 + factor * 24; // 8px -> 32px
+      const alpha = 0.3 + factor * 0.7; // 0.3 -> 1.0
+
+      dot.style.width = `${width}px`;
+      dot.style.backgroundColor = factor > 0.5 ? '#E8C9A0' : `rgba(200, 149, 108, ${alpha})`;
+      dot.style.boxShadow = factor > 0.3 ? `0 0 ${factor * 8}px rgba(232, 201, 160, ${factor * 0.6})` : 'none';
+    });
+  }, []);
+
+  const stepFractions = useMemo(() => [0, 0.5, 0.98], []);
+
+  // Smooth scroll jump to specific chapter when clicking dial indicators or arrows
   const goToStep = useCallback(
     (targetStep: number) => {
       const clamped = Math.max(0, Math.min(CHAPTERS.length - 1, targetStep));
-      const prevStep = activeStepRef.current;
-      if (clamped === prevStep) return;
+      const targetFraction = stepFractions[clamped];
 
-      isAnimatingRef.current = true;
-      const isMovingRight = clamped > prevStep;
-      activeStepRef.current = clamped;
-      setActiveStep(clamped);
+      if (scrollTriggerRef.current) {
+        const st = scrollTriggerRef.current;
+        const totalDist = st.end - st.start;
+        const targetScroll = st.start + targetFraction * totalDist;
 
-      // Directional narrative text transition
-      storyElementsRef.current.forEach((el, idx) => {
-        if (!el) return;
-        if (idx === clamped) {
-          gsap.killTweensOf(el);
-          gsap.fromTo(
-            el,
-            { opacity: 0, x: isMovingRight ? -45 : 45, pointerEvents: 'auto' },
-            { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out', delay: 0.05 }
-          );
-        } else if (idx === prevStep) {
-          gsap.killTweensOf(el);
-          gsap.to(el, {
-            opacity: 0,
-            x: isMovingRight ? 45 : -45,
-            duration: 0.32,
-            ease: 'power2.in',
-            pointerEvents: 'none',
+        if (lenis) {
+          lenis.scrollTo(targetScroll, {
+            duration: 0.8,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
           });
         } else {
-          gsap.killTweensOf(el);
-          gsap.set(el, { opacity: 0, x: isMovingRight ? 45 : -45, pointerEvents: 'none' });
+          window.scrollTo({ top: targetScroll, behavior: 'smooth' });
         }
-      });
-
-      // Animate progress smoothly along the parabolic arc (snappy 0.45s)
-      gsap.killTweensOf(progressAnimRef.current);
-      gsap.to(progressAnimRef.current, {
-        value: clamped,
-        duration: 0.45,
-        ease: 'power2.out',
-        onUpdate: () => {
-          updateDOMPositions(progressAnimRef.current.value);
-        },
-        onComplete: () => {
-          updateDOMPositions(clamped);
-          // Block scroll until animation complete AND momentum settles
-          if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
-          momentumTimerRef.current = setTimeout(() => {
-            isAnimatingRef.current = false;
-          }, 150);
-        },
-      });
-
-      // Safety timeout in case of animation interruption
-      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-      safetyTimerRef.current = setTimeout(() => {
-        isAnimatingRef.current = false;
-      }, 650);
+      }
     },
-    [updateDOMPositions]
+    [lenis, stepFractions]
   );
 
-  // Helper to lock scroll and apply scrollbar suppressor class
-  const lockScroll = useCallback((source: string) => {
-    console.log('[lockScroll]', { source, scrollY: window.scrollY, isInside: isInsideRef.current });
-    isInsideRef.current = true;
-    document.documentElement.classList.add('scroll-locked');
-    if (lenis) lenis.stop();
-  }, [lenis]);
-
-  // Helper to unlock scroll and restore native scrollbar
-  const unlockScroll = useCallback((source: string) => {
-    console.log('[unlockScroll]', { source, scrollY: window.scrollY, isInside: isInsideRef.current });
-    isInsideRef.current = false;
-    isAnimatingRef.current = false;
-    document.documentElement.classList.remove('scroll-locked');
-    if (lenis) lenis.start();
-  }, [lenis]);
-
-  // Scroll to Next Section (Visit Us)
-  const exitToNextSection = useCallback(() => {
-    unlockScroll('exitToNextSection');
-    const visit = document.getElementById('visit');
-    if (lenis && visit) {
-      lenis.scrollTo(visit, { duration: 0.8 });
-    } else {
-      document.getElementById('visit')?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [lenis, unlockScroll]);
-
-  // Scroll to Prev Section (Tactile Menu)
-  const exitToPrevSection = useCallback(() => {
-    unlockScroll('exitToPrevSection');
-    const menu = document.getElementById('menu');
-    if (lenis) {
-      if (menu) {
-        lenis.scrollTo(menu, { duration: 0.8 });
-      } else if (containerRef.current) {
-        lenis.scrollTo(Math.max(0, containerRef.current.offsetTop - window.innerHeight), { duration: 0.8 });
-      }
-    } else {
-      document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [lenis, unlockScroll]);
-
-  // Scroll bottom acts as single touch on Right Arrow
   const handleNext = useCallback(() => {
-    if (isAnimatingRef.current) return;
-    if (activeStepRef.current < CHAPTERS.length - 1) {
-      goToStep(activeStepRef.current + 1);
-    } else {
-      // At Chapter 03: unlock scroll so VisitUs can curtain up over EditorialStory naturally!
-      unlockScroll('handleNext:curtainUp');
+    if (activeStep < CHAPTERS.length - 1) {
+      goToStep(activeStep + 1);
     }
-  }, [goToStep, unlockScroll]);
+  }, [activeStep, goToStep]);
 
-  // Scroll top acts as single touch on Left Arrow
   const handlePrev = useCallback(() => {
-    if (isAnimatingRef.current) return;
-    if (activeStepRef.current > 0) {
-      goToStep(activeStepRef.current - 1);
-    } else {
-      exitToPrevSection();
+    if (activeStep > 0) {
+      goToStep(activeStep - 1);
     }
-  }, [goToStep, exitToPrevSection]);
+  }, [activeStep, goToStep]);
 
-  // Initialize positions on mount
-  useEffect(() => {
-    updateDOMPositions(0);
-    storyElementsRef.current.forEach((el, idx) => {
-      if (!el) return;
-      if (idx === 0) {
-        gsap.set(el, { opacity: 1, x: 0, pointerEvents: 'auto' });
-      } else {
-        gsap.set(el, { opacity: 0, x: 45, pointerEvents: 'none' });
-      }
-    });
-  }, [updateDOMPositions]);
-
-  // ScrollTrigger & Arrow-Touch Scroll Interceptor
+  // GSAP Pinned Scroll-Driven scrub Timeline
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const wrapper = document.getElementById('story-wrapper') || container;
+    // Initial setup of numeral positions and dots at chapter 0
+    updateDOMPositions(0);
+    updateDots(0);
 
-    const st = ScrollTrigger.create({
-      trigger: wrapper,
-      start: 'top top',
-      end: () => `+=${window.innerHeight}`,
-      onEnter: () => {
-        activeStepRef.current = 0;
-        setActiveStep(0);
-        updateDOMPositions(0);
-        lockScroll('onEnter');
-      },
-      onUpdate: (self) => {
-        // When scrolling UP from VisitUs:
-        // As soon as VisitUs has descended and EditorialStory is fully back in view (progress <= 0.05),
-        // lock scroll at Chapter 03 so the user can cycle back through the chapters!
-        if (self.direction === -1 && self.progress > 0 && self.progress <= 0.05 && !isInsideRef.current) {
-          activeStepRef.current = CHAPTERS.length - 1;
-          setActiveStep(CHAPTERS.length - 1);
-          updateDOMPositions(CHAPTERS.length - 1);
-          lockScroll('returnFromVisit');
+    const storyElements = storyElementsRef.current.filter(Boolean) as HTMLDivElement[];
+    if (storyElements.length < 3) return;
+
+    const ctx = gsap.context(() => {
+      const progressObj = { value: 0 };
+
+      // Set initial story element states
+      gsap.set(storyElements[0], { opacity: 1, x: 0 });
+      gsap.set(storyElements[1], { opacity: 0, x: 40 });
+      gsap.set(storyElements[2], { opacity: 0, x: 40 });
+
+      storyElements.forEach((el, idx) => {
+        el.style.pointerEvents = idx === 0 ? 'auto' : 'none';
+      });
+
+      const handleUpdate = () => {
+        const currentVal = progressObj.value;
+        updateDOMPositions(currentVal);
+        updateDots(currentVal);
+
+        const currentStep = Math.min(2, Math.max(0, Math.round(currentVal)));
+        if (currentStep !== activeStepRef.current) {
+          activeStepRef.current = currentStep;
+          setActiveStep(currentStep);
         }
-      },
-      onLeave: () => {
-        unlockScroll('onLeave');
-      },
-      onLeaveBack: () => {
-        unlockScroll('onLeaveBack');
-      },
-    });
-    scrollTriggerRef.current = st;
 
-    // Wheel event handler:
-    // Scroll bottom -> single touch on right arrow
-    // Scroll top -> single touch on left arrow
-    // Blocks scroll until animation completes!
-    const handleWheel = (e: WheelEvent) => {
-      if (!isInsideRef.current || selectedMonograph) return;
+        storyElements.forEach((el, idx) => {
+          if (el) {
+            el.style.pointerEvents = (currentVal >= idx - 0.35 && currentVal <= idx + 0.35) ? 'auto' : 'none';
+          }
+        });
+      };
 
-      e.preventDefault();
-      e.stopPropagation();
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: container,
+          start: 'top top',
+          end: '+=300%',
+          pin: true,
+          scrub: true,
+          invalidateOnRefresh: true,
+          onUpdate: handleUpdate,
+        },
+      });
 
-      // If animation is in progress, absorb ongoing momentum ticks
-      if (isAnimatingRef.current) {
-        if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
-        momentumTimerRef.current = setTimeout(() => {
-          isAnimatingRef.current = false;
-        }, 150);
-        return;
-      }
+      scrollTriggerRef.current = tl.scrollTrigger ?? null;
 
-      if (e.deltaY > 5) {
-        handleNext();
-      } else if (e.deltaY < -5) {
-        handlePrev();
-      }
-    };
+      // ─── Continuous Linear Timeline Choreography ───────────────
+      // Total duration: 2.0 units
+      // progressObj moves strictly linearly from 0 to 2 across the full range
+      tl.to(
+        progressObj,
+        {
+          value: 2,
+          ease: 'none',
+          duration: 2.0,
+        },
+        0
+      );
 
-    // Touch event handler for mobile/tablet swipes
-    let touchStartY = 0;
-    let touchStartX = 0;
+      // Chapter 0 -> Chapter 1 text crossfade (centered at 0.5)
+      tl.to(
+        storyElements[0],
+        { opacity: 0, x: -40, ease: 'none', duration: 0.4 },
+        0.3
+      );
+      tl.fromTo(
+        storyElements[1],
+        { opacity: 0, x: 40 },
+        { opacity: 1, x: 0, ease: 'none', duration: 0.4 },
+        0.3
+      );
 
-    const handleTouchStart = (e: TouchEvent) => {
-      if (!isInsideRef.current || selectedMonograph) return;
-      touchStartY = e.touches[0].clientY;
-      touchStartX = e.touches[0].clientX;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isInsideRef.current || selectedMonograph) return;
-
-      const deltaY = touchStartY - e.touches[0].clientY;
-      const deltaX = touchStartX - e.touches[0].clientX;
-
-      if (Math.abs(deltaY) > 10 || Math.abs(deltaX) > 10) {
-        if (e.cancelable) e.preventDefault();
-      }
-
-      if (isAnimatingRef.current) return;
-
-      // Vertical or Horizontal Swipe Threshold
-      if (deltaY > 30 || deltaX > 30) {
-        touchStartY = e.touches[0].clientY;
-        touchStartX = e.touches[0].clientX;
-        handleNext();
-      } else if (deltaY < -30 || deltaX < -30) {
-        touchStartY = e.touches[0].clientY;
-        touchStartX = e.touches[0].clientX;
-        handlePrev();
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      // Chapter 1 -> Chapter 2 text crossfade (centered at 1.5)
+      tl.to(
+        storyElements[1],
+        { opacity: 0, x: -40, ease: 'none', duration: 0.4 },
+        1.3
+      );
+      tl.fromTo(
+        storyElements[2],
+        { opacity: 0, x: 40 },
+        { opacity: 1, x: 0, ease: 'none', duration: 0.4 },
+        1.3
+      );
+    }, container);
 
     return () => {
-      unlockScroll('unmount');
-      if (momentumTimerRef.current) clearTimeout(momentumTimerRef.current);
-      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       scrollTriggerRef.current = null;
-      st.kill();
-      window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
+      ctx.revert();
     };
-  }, [exitToNextSection, exitToPrevSection, goToStep, handleNext, handlePrev, lenis, lockScroll, selectedMonograph, unlockScroll, updateDOMPositions]);
+  }, [updateDOMPositions, updateDots]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isInsideRef.current && !selectedMonograph) return;
-
+      if (selectedMonograph) {
+        if (e.key === 'Escape') setSelectedMonograph(null);
+        return;
+      }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         handleNext();
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         handlePrev();
-      } else if (e.key === 'Escape' && selectedMonograph) {
-        setSelectedMonograph(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleNext, handlePrev, selectedMonograph]);
+
 
   return (
     <section
@@ -673,11 +571,15 @@ export default function EditorialStory() {
               aria-label={`Jump to chapter ${chap.index}`}
             >
               <span
-                className={`h-1.5 rounded-full transition-all duration-400 ${
-                  i === activeStep
-                    ? 'w-8 bg-[#E8C9A0] shadow-[0_0_8px_rgba(232,201,160,0.6)]'
-                    : 'w-2 bg-[#C8956C]/30 group-hover:bg-[#C8956C]/60'
-                }`}
+                ref={(el) => {
+                  dotsRef.current[i] = el;
+                }}
+                className="h-1.5 rounded-full will-change-transform"
+                style={{
+                  width: i === 0 ? '32px' : '8px',
+                  backgroundColor: i === 0 ? '#E8C9A0' : 'rgba(200, 149, 108, 0.3)',
+                  boxShadow: i === 0 ? '0 0 8px rgba(232, 201, 160, 0.6)' : 'none',
+                }}
               />
             </button>
           ))}

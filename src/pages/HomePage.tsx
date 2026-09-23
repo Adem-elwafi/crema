@@ -78,22 +78,20 @@ export default function HomePage() {
             <TactileMenu />
           </div>
 
-          {/* EditorialStory + Downstream: EditorialStory is sticky; VisitUs ascends and curtains over it */}
-          <div id="story-wrapper" className="relative z-10 w-full">
-            <div className="sticky top-0 z-0 h-dvh w-full overflow-hidden">
-              <EditorialStory />
-            </div>
-            <div className="relative z-10">
-              <Suspense fallback={null}>
-                <LazyContentReady>
-                  <VisitUs />
-                  <Newsletter />
-                  <Footer />
-                </LazyContentReady>
-              </Suspense>
-            </div>
+          {/* EditorialStory: pinned dark section via GSAP ScrollTrigger pin: true */}
+          <div className="relative z-10">
+            <EditorialStory />
           </div>
         </div>
+
+        {/* ─── Downstream light sections ──────────────────────────────────────── */}
+        <Suspense fallback={null}>
+          <LazyContentReady>
+            <VisitUs />
+            <Newsletter />
+            <Footer />
+          </LazyContentReady>
+        </Suspense>
       </div>
     </LenisProvider>
   );
