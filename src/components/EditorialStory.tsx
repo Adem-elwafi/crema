@@ -315,9 +315,10 @@ export default function EditorialStory() {
         scrollTrigger: {
           trigger: container,
           start: 'top top',
-          end: '+=300%',
+          end: '+=180%',
           pin: true,
           scrub: true,
+          anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: handleUpdate,
         },
