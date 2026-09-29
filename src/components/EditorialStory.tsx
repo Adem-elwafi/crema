@@ -197,6 +197,25 @@ export default function EditorialStory() {
   const dotsRef = useRef<(HTMLSpanElement | null)[]>([]);
   const activeStepRef = useRef(0);
 
+  // Mobile navigation progress and tweens
+  const mobileProgressRef = useRef({ value: 0 });
+  const mobileTweenRef = useRef<gsap.core.Tween | null>(null);
+  const isMobileRef = useRef(false);
+
+  // Touch gesture tracking for phones
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  // Track viewport breakpoint (< 768px)
+  useEffect(() => {
+    const updateIsMobile = () => {
+      isMobileRef.current = window.innerWidth < 768;
+    };
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
   // Update DOM positions directly for 120 FPS buttery smooth motion
   const updateDOMPositions = useCallback((progress: number) => {
     numElementsRef.current.forEach((el, idx) => {
@@ -231,12 +250,55 @@ export default function EditorialStory() {
     });
   }, []);
 
+  // Smooth mobile slide transition without hijacking page scroll
+  const animateToMobileStep = useCallback(
+    (targetStep: number) => {
+      if (mobileTweenRef.current) {
+        mobileTweenRef.current.kill();
+      }
+
+      setActiveStep(targetStep);
+      activeStepRef.current = targetStep;
+
+      mobileTweenRef.current = gsap.to(mobileProgressRef.current, {
+        value: targetStep,
+        duration: 0.45,
+        ease: 'power2.out',
+        onUpdate: () => {
+          updateDOMPositions(mobileProgressRef.current.value);
+          updateDots(mobileProgressRef.current.value);
+        },
+      });
+
+      const storyElements = storyElementsRef.current.filter(Boolean) as HTMLDivElement[];
+      gsap.killTweensOf(storyElements);
+      storyElements.forEach((el, idx) => {
+        if (idx === targetStep) {
+          el.style.pointerEvents = 'auto';
+          gsap.to(el, { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' });
+        } else {
+          el.style.pointerEvents = 'none';
+          const dir = idx < targetStep ? -30 : 30;
+          gsap.to(el, { opacity: 0, x: dir, duration: 0.35, ease: 'power2.in' });
+        }
+      });
+    },
+    [updateDOMPositions, updateDots]
+  );
+
   const stepFractions = useMemo(() => [0, 0.5, 0.98], []);
 
-  // Smooth scroll jump to specific chapter when clicking dial indicators or arrows
+  // Jump to specific chapter (Scroll-driven on desktop, slide-driven on mobile)
   const goToStep = useCallback(
     (targetStep: number) => {
       const clamped = Math.max(0, Math.min(CHAPTERS.length - 1, targetStep));
+
+      if (isMobileRef.current) {
+        animateToMobileStep(clamped);
+        return;
+      }
+
+      // Desktop: ScrollTrigger scroll jump
       const targetFraction = stepFractions[clamped];
 
       if (scrollTriggerRef.current) {
@@ -246,15 +308,17 @@ export default function EditorialStory() {
 
         if (lenis) {
           lenis.scrollTo(targetScroll, {
-            duration: 0.8,
+            duration: 0.6,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
           });
         } else {
           window.scrollTo({ top: targetScroll, behavior: 'smooth' });
         }
+      } else {
+        animateToMobileStep(clamped);
       }
     },
-    [lenis, stepFractions]
+    [animateToMobileStep, lenis, stepFractions]
   );
 
   const handleNext = useCallback(() => {
@@ -269,28 +333,60 @@ export default function EditorialStory() {
     }
   }, [activeStep, goToStep]);
 
-  // GSAP Pinned Scroll-Driven scrub Timeline
+  // Touch swipe handling for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = touchStartXRef.current - endX;
+    const diffY = touchStartYRef.current - endY;
+
+    // Trigger swipe if horizontal distance > 40px and dominant over vertical
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
+  // GSAP Responsive Timeline Choreography: Desktop gets fast pinned scrub, Mobile gets ZERO scrolltriggers
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Initial setup of numeral positions and dots at chapter 0
-    updateDOMPositions(0);
-    updateDots(0);
+    const mm = gsap.matchMedia();
+
+    // Initial setup of numeral positions and dots at current chapter
+    updateDOMPositions(activeStepRef.current);
+    updateDots(activeStepRef.current);
 
     const storyElements = storyElementsRef.current.filter(Boolean) as HTMLDivElement[];
     if (storyElements.length < 3) return;
 
-    const ctx = gsap.context(() => {
-      const progressObj = { value: 0 };
+    // ─── DESKTOP (md breakpoint: >= 768px): Pinned fast-scroll scrub timeline ────────
+    mm.add('(min-width: 768px)', () => {
+      const progressObj = { value: activeStepRef.current };
 
-      // Set initial story element states
-      gsap.set(storyElements[0], { opacity: 1, x: 0 });
-      gsap.set(storyElements[1], { opacity: 0, x: 40 });
-      gsap.set(storyElements[2], { opacity: 0, x: 40 });
-
+      // Set initial story element states based on current step
       storyElements.forEach((el, idx) => {
-        el.style.pointerEvents = idx === 0 ? 'auto' : 'none';
+        if (idx === activeStepRef.current) {
+          gsap.set(el, { opacity: 1, x: 0 });
+          el.style.pointerEvents = 'auto';
+        } else {
+          gsap.set(el, { opacity: 0, x: idx < activeStepRef.current ? -40 : 40 });
+          el.style.pointerEvents = 'none';
+        }
       });
 
       const handleUpdate = () => {
@@ -315,7 +411,7 @@ export default function EditorialStory() {
         scrollTrigger: {
           trigger: container,
           start: 'top top',
-          end: '+=180%',
+          end: '+=280%', // Deliberate, unhurried desktop scroll duration
           pin: true,
           scrub: true,
           anticipatePin: 1,
@@ -326,9 +422,8 @@ export default function EditorialStory() {
 
       scrollTriggerRef.current = tl.scrollTrigger ?? null;
 
-      // ─── Continuous Linear Timeline Choreography ───────────────
-      // Total duration: 2.0 units
-      // progressObj moves strictly linearly from 0 to 2 across the full range
+      // Continuous Linear Timeline Choreography
+      // progressObj moves strictly linearly from 0 to 2 across the pinned range
       tl.to(
         progressObj,
         {
@@ -364,11 +459,39 @@ export default function EditorialStory() {
         { opacity: 1, x: 0, ease: 'none', duration: 0.4 },
         1.3
       );
-    }, container);
+
+      return () => {
+        scrollTriggerRef.current = null;
+      };
+    });
+
+    // ─── MOBILE (< 768px): ZERO ScrollTrigger, zero pin, zero scroll jank ──────────
+    mm.add('(max-width: 767px)', () => {
+      scrollTriggerRef.current = null;
+      mobileProgressRef.current.value = activeStepRef.current;
+      updateDOMPositions(activeStepRef.current);
+      updateDots(activeStepRef.current);
+
+      storyElements.forEach((el, idx) => {
+        if (idx === activeStepRef.current) {
+          gsap.set(el, { opacity: 1, x: 0 });
+          el.style.pointerEvents = 'auto';
+        } else {
+          gsap.set(el, { opacity: 0, x: idx < activeStepRef.current ? -30 : 30 });
+          el.style.pointerEvents = 'none';
+        }
+      });
+
+      return () => {
+        if (mobileTweenRef.current) {
+          mobileTweenRef.current.kill();
+        }
+      };
+    });
 
     return () => {
       scrollTriggerRef.current = null;
-      ctx.revert();
+      mm.revert();
     };
   }, [updateDOMPositions, updateDots]);
 
@@ -389,12 +512,13 @@ export default function EditorialStory() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleNext, handlePrev, selectedMonograph]);
 
-
   return (
     <section
       ref={containerRef}
       id="why-us"
-      className="relative w-full h-screen h-dvh bg-[#0E0805] text-[#FDF8F3] select-none overflow-hidden flex flex-col justify-between pt-16 md:pt-20 pb-8"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="relative w-full min-h-dvh md:h-screen md:h-dvh bg-[#0E0805] text-[#FDF8F3] select-none overflow-hidden flex flex-col justify-between pt-14 sm:pt-16 md:pt-20 pb-6 sm:pb-8"
     >
       {/* Anchor shim for legacy navigation links */}
       <span id="about" className="absolute top-0 pointer-events-none" />
@@ -408,11 +532,11 @@ export default function EditorialStory() {
       {/* ─────────────────────────────────────────────────────────────
           1. TOP SECTION HEADER (ALWAYS VISIBLE & REFINED)
           ───────────────────────────────────────────────────────────── */}
-      <header className="relative z-30 text-center px-6 max-w-4xl mx-auto pt-2">
-        <span className="font-mono text-[10px] sm:text-xs text-[#C8956C] uppercase tracking-[0.28em] opacity-90 block mb-1.5">
+      <header className="relative z-30 text-center px-6 max-w-4xl 2xl:max-w-6xl mx-auto pt-2">
+        <span className="font-mono text-[10px] sm:text-xs 2xl:text-sm text-[#C8956C] uppercase tracking-[0.28em] opacity-90 block mb-1.5">
           ANALOG CADENCE · MONASTIC PURITY
         </span>
-        <h2 className="font-display text-2xl sm:text-4xl md:text-5xl font-light text-[#F5EDE4] tracking-[0.14em] uppercase leading-tight drop-shadow-[0_2px_20px_rgba(0,0,0,0.85)]">
+        <h2 className="font-display text-2xl sm:text-4xl md:text-5xl 2xl:text-6xl font-light text-[#F5EDE4] tracking-[0.14em] uppercase leading-tight drop-shadow-[0_2px_20px_rgba(0,0,0,0.85)]">
           Our Journey of Distillation
         </h2>
       </header>
@@ -422,7 +546,7 @@ export default function EditorialStory() {
           ───────────────────────────────────────────────────────────── */}
       <div
         ref={stageRef}
-        className="relative z-20 w-full max-w-[1600px] h-[280px] mx-auto my-auto flex items-center justify-center overflow-visible"
+        className="relative z-20 w-full max-w-[1600px] 2xl:max-w-[1920px] h-[240px] sm:h-[280px] lg:h-[300px] 2xl:h-[360px] mx-auto my-auto flex items-center justify-center overflow-visible"
       >
         {/* SVG FIXED PRECISION RULER GAUGE ARC */}
         <div className="absolute inset-0 w-full h-full pointer-events-none z-0 flex items-center justify-center">
@@ -478,7 +602,7 @@ export default function EditorialStory() {
           </svg>
         </div>
 
-        {/* NUMERALS CONTAINER: Each numeral is pinned to the arc via Parabolic Math */}
+        {/* NUMERALS CONTAINER: Scaled boldly for 15.6"+ screens (2xl breakpoint) */}
         <div className="absolute inset-0 pointer-events-none z-10 overflow-visible">
           {CHAPTERS.map((chap, idx) => (
             <div
@@ -490,11 +614,7 @@ export default function EditorialStory() {
               className="absolute flex flex-col items-center justify-center select-none will-change-transform cursor-pointer"
             >
               <span
-                className="font-sans font-light text-[7.5rem] sm:text-[9rem] md:text-[10.5rem] tracking-tight leading-none"
-                style={{
-                  WebkitTextStroke: '1.5px rgba(245, 237, 228, 0.75)',
-                  color: 'rgba(245, 237, 228, 0.08)',
-                }}
+                className="arc-number-stroke font-sans font-light text-[6.5rem] sm:text-[8.5rem] md:text-[10rem] lg:text-[12rem] xl:text-[14rem] 2xl:text-[17rem] min-[1800px]:text-[19.5rem] tracking-tight leading-none text-[rgba(245,237,228,0.08)]"
               >
                 {chap.index}
               </span>
@@ -506,7 +626,7 @@ export default function EditorialStory() {
       {/* ─────────────────────────────────────────────────────────────
           3. CENTERED READING POCKET (STORY TEXT CROSSFADES IN PLACE)
           ───────────────────────────────────────────────────────────── */}
-      <div className="relative z-30 w-full max-w-xl mx-auto px-6 text-center min-h-[140px] flex items-center justify-center mb-4">
+      <div className="relative z-30 w-full max-w-xl 2xl:max-w-2xl mx-auto px-6 text-center min-h-[140px] 2xl:min-h-[170px] flex items-center justify-center mb-3 sm:mb-4">
         {CHAPTERS.map((chap, idx) => (
           <div
             key={chap.id}
@@ -516,27 +636,27 @@ export default function EditorialStory() {
             className="absolute inset-0 flex flex-col items-center justify-center select-none will-change-transform"
           >
             {/* Cream Pill Badge */}
-            <div className="mb-2.5">
-              <span className="inline-block bg-[#F5EDE4] text-[#1E110A] px-4 py-1 rounded-full font-mono text-[10px] sm:text-xs font-bold tracking-[0.24em] uppercase shadow-[0_4px_16px_rgba(0,0,0,0.7)] border border-[#FAF3EB]/50">
+            <div className="mb-2 sm:mb-2.5 2xl:mb-3">
+              <span className="inline-block bg-[#F5EDE4] text-[#1E110A] px-3.5 sm:px-4 py-1 2xl:px-5 2xl:py-1.5 rounded-full font-mono text-[10px] sm:text-xs 2xl:text-sm font-bold tracking-[0.24em] uppercase shadow-[0_4px_16px_rgba(0,0,0,0.7)] border border-[#FAF3EB]/50">
                 {chap.badge}
               </span>
             </div>
 
             {/* Story Narrative Paragraph */}
-            <p className="font-body text-xs sm:text-sm md:text-base font-normal text-[#E6DFD5] leading-[1.65] max-w-md mx-auto">
+            <p className="font-body text-xs sm:text-sm md:text-base 2xl:text-lg font-normal text-[#E6DFD5] leading-[1.6] sm:leading-[1.65] 2xl:leading-[1.7] max-w-md 2xl:max-w-xl mx-auto">
               {chap.previewText.join(' ')}
             </p>
 
             {/* Monograph Button */}
-            <div className="mt-2.5">
+            <div className="mt-2 sm:mt-2.5 2xl:mt-3">
               <button
                 onClick={() => setSelectedMonograph(chap)}
-                className="group inline-flex items-center gap-1.5 font-mono text-[11px] sm:text-xs uppercase tracking-[0.22em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-colors border-b border-[#C8956C]/50 hover:border-[#FDF8F3] pb-0.5 cursor-pointer"
+                className="group inline-flex items-center gap-1.5 font-mono text-[11px] sm:text-xs 2xl:text-sm uppercase tracking-[0.22em] text-[#E8C9A0] hover:text-[#FDF8F3] transition-colors border-b border-[#C8956C]/50 hover:border-[#FDF8F3] pb-0.5 cursor-pointer touch-manipulation"
               >
                 <span>READ ARCHIVE MONOGRAPH</span>
                 <ArrowUpRight
                   size={13}
-                  className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  className="2xl:w-4 2xl:h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
                 />
               </button>
             </div>
@@ -547,35 +667,35 @@ export default function EditorialStory() {
       {/* ─────────────────────────────────────────────────────────────
           4. ALWAYS-ACCESSIBLE BOTTOM ARROW CONTROLS & DIAL INDICATORS
           ───────────────────────────────────────────────────────────── */}
-      <footer className="relative z-30 flex items-center justify-between px-6 max-w-md mx-auto w-full pt-2">
+      <footer className="relative z-30 flex items-center justify-between px-6 max-w-md 2xl:max-w-lg mx-auto w-full pt-1 sm:pt-2">
         {/* Prev Chapter Arrow */}
         <button
           onClick={handlePrev}
           disabled={activeStep === 0}
           aria-label="Previous chapter"
-          className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
+          className={`p-3 sm:p-2.5 2xl:p-3.5 rounded-full border border-[#C8956C]/40 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center min-w-[48px] min-h-[48px] touch-manipulation ${
             activeStep === 0
               ? 'opacity-20 cursor-not-allowed'
-              : 'bg-black/30 hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer active:scale-95'
+              : 'bg-black/40 hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] active:scale-95 cursor-pointer shadow-lg'
           }`}
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={22} className="2xl:w-6 2xl:h-6" />
         </button>
 
         {/* Vintage Dial Indicator Dots */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 sm:gap-3.5 2xl:gap-4 py-2">
           {CHAPTERS.map((chap, i) => (
             <button
               key={chap.id}
               onClick={() => goToStep(i)}
-              className="group flex items-center gap-2 p-1 cursor-pointer"
+              className="group flex items-center gap-2 p-2 touch-manipulation cursor-pointer"
               aria-label={`Jump to chapter ${chap.index}`}
             >
               <span
                 ref={(el) => {
                   dotsRef.current[i] = el;
                 }}
-                className="h-1.5 rounded-full will-change-transform"
+                className="h-2 sm:h-1.5 2xl:h-2 rounded-full will-change-transform"
                 style={{
                   width: i === 0 ? '32px' : '8px',
                   backgroundColor: i === 0 ? '#E8C9A0' : 'rgba(200, 149, 108, 0.3)',
@@ -591,13 +711,13 @@ export default function EditorialStory() {
           onClick={handleNext}
           disabled={activeStep === CHAPTERS.length - 1}
           aria-label="Next chapter"
-          className={`p-2.5 rounded-full border border-[#C8956C]/30 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center ${
+          className={`p-3 sm:p-2.5 2xl:p-3.5 rounded-full border border-[#C8956C]/40 text-[#E8C9A0] transition-all duration-300 flex items-center justify-center min-w-[48px] min-h-[48px] touch-manipulation ${
             activeStep === CHAPTERS.length - 1
               ? 'opacity-20 cursor-not-allowed'
-              : 'bg-black/30 hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] cursor-pointer active:scale-95'
+              : 'bg-black/40 hover:bg-[#C8956C]/20 hover:border-[#E8C9A0] active:scale-95 cursor-pointer shadow-lg'
           }`}
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={22} className="2xl:w-6 2xl:h-6" />
         </button>
       </footer>
 
@@ -610,16 +730,16 @@ export default function EditorialStory() {
           onClick={() => setSelectedMonograph(null)}
         >
           <div
-            className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#1C110B] border border-[#C8956C]/30 text-[#FDF8F3] shadow-[0_25px_80px_rgba(0,0,0,0.9)] p-6 sm:p-10 flex flex-col md:flex-row gap-8 items-stretch"
+            className="relative w-full max-w-4xl 2xl:max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#1C110B] border border-[#C8956C]/30 text-[#FDF8F3] shadow-[0_25px_80px_rgba(0,0,0,0.9)] p-6 sm:p-10 2xl:p-12 flex flex-col md:flex-row gap-8 2xl:gap-10 items-stretch"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={() => setSelectedMonograph(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-white/10 hover:bg-white/20 text-[#FDF8F3] transition-colors z-20 cursor-pointer"
+              className="absolute top-5 right-5 p-2 2xl:p-3 rounded-full bg-white/10 hover:bg-white/20 text-[#FDF8F3] transition-colors z-20 cursor-pointer touch-manipulation"
               aria-label="Close monograph"
             >
-              <X size={20} />
+              <X size={20} className="2xl:w-6 2xl:h-6" />
             </button>
 
             {/* Left: High-Res Archive Photography */}
@@ -631,19 +751,19 @@ export default function EditorialStory() {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
-                <div className="absolute top-4 left-4 bg-[#F5EDE4] text-brown-900 px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest uppercase">
+                <div className="absolute top-4 left-4 bg-[#F5EDE4] text-brown-900 px-3 py-1 2xl:px-4 2xl:py-1.5 rounded-full text-[10px] 2xl:text-xs font-mono font-bold tracking-widest uppercase">
                   {selectedMonograph.badge}
                 </div>
               </div>
 
-              {/* Technical Specs */}
-              <div className="grid grid-cols-2 gap-2 p-3.5 rounded-xl bg-black/40 border border-white/5 font-mono text-xs">
+              {/* Technical Specs & Measurements */}
+              <div className="grid grid-cols-2 gap-2.5 2xl:gap-3.5 p-3.5 2xl:p-5 rounded-xl bg-black/40 border border-white/5 font-mono text-xs 2xl:text-sm">
                 {selectedMonograph.specs.map((spec, sIdx) => (
                   <div key={sIdx}>
-                    <span className="text-[10px] text-accent block uppercase tracking-wider">
+                    <span className="text-[10px] 2xl:text-xs text-accent block uppercase tracking-wider">
                       {spec.label}
                     </span>
-                    <span className="text-cream/90 font-medium">{spec.value}</span>
+                    <span className="text-cream/90 font-medium 2xl:text-base">{spec.value}</span>
                   </div>
                 ))}
               </div>
@@ -652,22 +772,22 @@ export default function EditorialStory() {
             {/* Right: Rich Narrative & Monograph Text */}
             <div className="w-full md:w-1/2 flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.25em] text-accent mb-2">
-                  <Sparkles size={14} />
+                <div className="flex items-center gap-2 text-xs 2xl:text-sm font-mono uppercase tracking-[0.25em] text-accent mb-2">
+                  <Sparkles size={14} className="2xl:w-4 2xl:h-4" />
                   <span>CHAPTER {selectedMonograph.index} OF 03</span>
                 </div>
 
-                <h3 className="font-display text-3xl sm:text-4xl font-bold text-cream mb-4 leading-tight">
+                <h3 className="font-display text-3xl sm:text-4xl 2xl:text-5xl font-bold text-cream mb-4 leading-tight">
                   {selectedMonograph.title}
                 </h3>
 
-                <blockquote className="font-display italic text-lg sm:text-xl text-[#E8C9A0] font-medium leading-snug mb-6 border-l-2 border-accent pl-4">
+                <blockquote className="font-display italic text-lg sm:text-xl 2xl:text-2xl text-[#E8C9A0] font-medium leading-snug mb-6 border-l-2 border-accent pl-4">
                   &ldquo;{selectedMonograph.quote}&rdquo;
                 </blockquote>
 
-                <div className="space-y-4 font-body text-[#D7CCC8] leading-relaxed text-sm sm:text-base">
+                <div className="space-y-4 font-body text-[#D7CCC8] leading-relaxed text-sm sm:text-base 2xl:text-lg">
                   <p>
-                    <span className="float-left font-display text-4xl leading-none font-bold text-cream pr-2 pt-0.5">
+                    <span className="float-left font-display text-4xl 2xl:text-5xl leading-none font-bold text-cream pr-2.5 pt-0.5">
                       {selectedMonograph.dropCap}
                     </span>
                     {selectedMonograph.story}
@@ -680,13 +800,13 @@ export default function EditorialStory() {
                 <a
                   href="#menu"
                   onClick={() => setSelectedMonograph(null)}
-                  className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] font-semibold text-accent hover:text-[#E8C9A0] transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-xs 2xl:text-sm uppercase tracking-[0.2em] font-semibold text-accent hover:text-[#E8C9A0] transition-colors"
                 >
                   <span>ORDER TASTING FLIGHT</span>
-                  <ArrowUpRight size={14} />
+                  <ArrowUpRight size={14} className="2xl:w-4 2xl:h-4" />
                 </a>
 
-                <span className="font-mono text-xs text-white/40">CREMA ARCHIVE</span>
+                <span className="font-mono text-xs 2xl:text-sm text-white/40">CREMA ARCHIVE</span>
               </div>
             </div>
           </div>
